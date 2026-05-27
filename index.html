@@ -1,0 +1,1947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Meridian — Personal Finance Terminal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Newsreader:ital,wght@0,400;0,500;1,400;1,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=EB+Garamond:ital@0;1&family=Spectral:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   MERIDIAN — personal finance, calmer take.
+   ========================================================= */
+:root {
+  --bg:           #100C14;
+  --bg-1:         #151020;
+  --panel:        #1C1526;
+  --panel-2:      #231C2E;
+  --panel-hi:     #2B2238;
+  --rule:         #2B2238;
+  --rule-2:       #3C3050;
+  --ink:          #F2EAF5;
+  --ink-2:        #C8B8D4;
+  --ink-3:        #8C7898;
+  --ink-4:        #5C4E68;
+  --up:           #7AB888;
+  --up-2:         #4A8858;
+  --down:         #E87878;
+  --down-2:       #A84848;
+  --warn:         #D4A060;
+  --info:         #6AAABB;
+  --magenta:      #D080A8;
+  --accent:       #D07090;
+  --accent-2:     #A85070;
+  --pad:           16px;
+  --pad-tight:     10px;
+  --pad-loose:     24px;
+  --gap:           1px;
+  --row-h:         32px;
+  --sans: 'Geist', 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+  --mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+  --serif: 'Newsreader', 'Source Serif Pro', Georgia, serif;
+  --fs-xs:    11px;
+  --fs-sm:    12px;
+  --fs-base:  13px;
+  --fs-md:    14px;
+  --fs-lg:    16px;
+  --fs-xl:    20px;
+  --fs-2xl:   28px;
+  --fs-3xl:   44px;
+  --fs-4xl:   64px;
+}
+[data-density="compact"] {
+  --pad: 12px; --pad-tight: 8px; --pad-loose: 18px; --row-h: 26px;
+  --fs-base: 12px; --fs-md: 13px; --fs-lg: 15px; --fs-xl: 18px; --fs-2xl: 24px; --fs-3xl: 36px; --fs-4xl: 52px;
+}
+[data-density="spacious"] {
+  --pad: 22px; --pad-tight: 14px; --pad-loose: 32px; --row-h: 36px;
+  --fs-base: 14px; --fs-md: 15px; --fs-lg: 18px; --fs-xl: 24px; --fs-2xl: 32px; --fs-3xl: 52px; --fs-4xl: 76px;
+}
+[data-theme="light"] {
+  --bg: #FAF0F6; --bg-1: #F4E8F2; --panel: #FEFAFD; --panel-2: #F8EEF6; --panel-hi: #EFE2EE;
+  --rule: #E6D4E4; --rule-2: #CEB8CC;
+  --ink: #1A0E18; --ink-2: #3E2A3C; --ink-3: #6E5A6C; --ink-4: #9E8C9C;
+  --up: #3A7848; --up-2: #285836; --down: #C04858; --down-2: #883040;
+  --warn: #A07030; --info: #2A7888; --magenta: #A04080;
+  --accent: #C05878; --accent-2: #904060;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--sans); font-size: var(--fs-base);
+  font-feature-settings: "ss01","cv11";
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+button { font-family: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+input, select, textarea { font-family: inherit; color: inherit; }
+table { border-collapse: collapse; width: 100%; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--rule-2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+.mono { font-family: var(--mono); font-feature-settings: "tnum","zero"; }
+.tnum { font-variant-numeric: tabular-nums; }
+.serif { font-family: var(--serif); }
+.up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+.info { color: var(--info); } .ink2 { color: var(--ink-2); } .ink3 { color: var(--ink-3); } .ink4 { color: var(--ink-4); }
+.eyebrow { font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0.04em; color: var(--ink-3); }
+.divider-h { height: 1px; background: var(--rule); width: 100%; }
+.divider-v { width: 1px; background: var(--rule); align-self: stretch; }
+.app {
+  display: grid; grid-template-rows: 56px 1fr; grid-template-columns: 60px 1fr;
+  height: 100vh; background: var(--bg); gap: 0;
+}
+.topbar {
+  grid-column: 1 / -1; display: flex; align-items: center;
+  padding: 0 20px; border-bottom: 1px solid var(--rule);
+  background: var(--bg-1); gap: 22px; font-size: var(--fs-sm);
+}
+.topbar .brand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-weight: 500; font-size: 17px; letter-spacing: 0.01em; font-style: italic; }
+.topbar .brand .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); }
+.topbar .crumbs { font-family: var(--sans); font-size: 12px; color: var(--ink-3); letter-spacing: 0.02em; text-transform: capitalize; }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 16px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+.topbar .right .fx { display: flex; gap: 14px; }
+.topbar .right .fx .pair { color: var(--ink-3); }
+.topbar .right .fx .val { color: var(--ink); }
+.theme-toggle { font-family: var(--sans); font-size: 11px; font-weight: 500; color: var(--ink-3); padding: 6px 10px; border: 1px solid var(--rule); border-radius: 3px; }
+.theme-toggle:hover { color: var(--ink); border-color: var(--rule-2); }
+.sidebar { background: var(--bg-1); border-right: 1px solid var(--rule); display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 4px; }
+.nav-btn { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 6px; color: var(--ink-3); position: relative; transition: color 0.12s, background 0.12s; }
+.nav-btn:hover { color: var(--ink); background: var(--panel); }
+.nav-btn.active { color: var(--accent); background: var(--panel); }
+.nav-btn.active::before { content: ''; position: absolute; left: -1px; top: 10px; bottom: 10px; width: 2px; background: var(--accent); border-radius: 0 2px 2px 0; }
+.nav-btn svg { width: 19px; height: 19px; }
+.nav-btn .tip { position: absolute; left: 52px; background: var(--panel-hi); color: var(--ink); padding: 5px 10px; font-size: 11px; font-family: var(--sans); border: 1px solid var(--rule-2); border-radius: 3px; opacity: 0; pointer-events: none; white-space: nowrap; transform: translateX(-4px); transition: opacity 0.12s, transform 0.12s; z-index: 10; }
+.nav-btn:hover .tip { opacity: 1; transform: translateX(0); }
+.main { overflow: auto; background: var(--bg); }
+.panel { background: var(--panel); border: 1px solid var(--rule); }
+.panel-h { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--panel-2); min-height: 38px; gap: 12px; }
+.panel-h .title { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: 0.01em; color: var(--ink-2); }
+.panel-h .meta { font-family: var(--sans); font-size: 11px; color: var(--ink-4); margin-left: auto; letter-spacing: 0; }
+.panel-h .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.panel-b { padding: var(--pad); }
+.panel-b.flush { padding: 0; }
+.screen { display: grid; gap: var(--gap); background: var(--rule); min-height: 100%; }
+table.ledger { font-family: var(--sans); font-size: var(--fs-sm); }
+table.ledger th { text-align: left; font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0.02em; color: var(--ink-3); padding: 10px 14px; border-bottom: 1px solid var(--rule); background: var(--panel-2); position: sticky; top: 0; }
+table.ledger th.r { text-align: right; }
+table.ledger td { padding: 9px 14px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+table.ledger td.r { text-align: right; }
+table.ledger tr:hover td { background: var(--panel-2); }
+table.ledger tr.group-h td { background: var(--bg-1); color: var(--ink-3); font-size: 11px; font-weight: 500; letter-spacing: 0.01em; padding: 8px 14px; border-top: 1px solid var(--rule-2); }
+.cat-chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-2); font-family: var(--sans); white-space: nowrap; }
+.cat-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.cat-an_uong   { background: #7AB888; }
+.cat-must_have { background: #6AAABB; }
+.cat-optional  { background: #D07090; }
+.cat-khac      { background: #D4A060; }
+.cat-me        { background: #A85070; }
+.cat-income    { background: #7AB888; }
+.btn { font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0.01em; padding: 6px 12px; border: 1px solid var(--rule-2); color: var(--ink-2); background: transparent; border-radius: 3px; transition: all 0.12s; }
+.btn:hover { color: var(--ink); border-color: var(--ink-4); }
+.btn.primary { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-2); border-color: var(--accent-2); color: var(--bg); }
+.btn.ghost { border-color: transparent; }
+.btn.ghost:hover { background: var(--panel-hi); }
+.field { background: var(--bg); border: 1px solid var(--rule-2); padding: 7px 11px; font-family: var(--sans); font-size: var(--fs-sm); color: var(--ink); border-radius: 3px; height: 32px; }
+.field:focus { outline: none; border-color: var(--accent); }
+select.field { padding-right: 28px; appearance: none; background-image: linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%); background-position: calc(100% - 14px) center, calc(100% - 10px) center; background-size: 4px 4px, 4px 4px; background-repeat: no-repeat; }
+.field-lbl { font-family: var(--sans); font-size: 11px; font-weight: 500; color: var(--ink-3); margin-bottom: 5px; display: block; }
+.kpi { padding: 18px; display: flex; flex-direction: column; gap: 5px; }
+.kpi .lbl { font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0.02em; color: var(--ink-3); margin-bottom: 2px; }
+.kpi .val { font-family: var(--serif); font-size: 36px; letter-spacing: -0.01em; font-weight: 400; color: var(--ink); line-height: 1.05; }
+.kpi .val.mono { font-family: var(--mono); font-size: 30px; font-weight: 500; }
+.kpi .val .ccy { font-size: 0.5em; color: var(--ink-3); margin-right: 4px; font-family: var(--sans); font-weight: 400; }
+.kpi .sub { font-family: var(--sans); font-size: 11px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px; }
+.delta { display: inline-flex; gap: 3px; align-items: center; font-family: var(--sans); font-size: 11px; }
+.delta .arr { font-size: 9px; }
+.bar { background: var(--bg); height: 5px; position: relative; border-radius: 3px; overflow: hidden; }
+.bar-fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--accent); border-radius: 3px; }
+.bar.tall { height: 10px; border-radius: 5px; }
+.bar.tall .bar-fill { border-radius: 5px; }
+.bar.thin { height: 3px; background: var(--rule-2); }
+.chat-msg { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.chat-msg .who { font-family: var(--sans); font-size: 11px; font-weight: 500; color: var(--ink-3); width: 56px; flex-shrink: 0; padding-top: 4px; }
+.chat-msg.advisor .who { color: var(--accent); }
+.chat-msg .body { font-size: var(--fs-md); line-height: 1.6; color: var(--ink); }
+.chat-msg .body p { margin: 0 0 10px 0; }
+.chat-msg .body p:last-child { margin: 0; }
+.chat-msg .body .num { font-family: var(--mono); color: var(--accent); }
+.chat-msg.advisor .body { font-family: var(--serif); font-size: 15px; line-height: 1.65; }
+.sparkline { display: block; }
+.flex { display: flex; } .flex-col { display: flex; flex-direction: column; }
+.gap-1 { gap: 4px; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; } .gap-6 { gap: 24px; }
+.row-between { display: flex; justify-content: space-between; align-items: center; }
+.grow { flex: 1; }
+.metric-card { display: flex; flex-direction: column; padding: 18px; gap: 8px; }
+.metric-card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.metric-card .name { font-family: var(--sans); font-size: 11px; font-weight: 500; color: var(--ink-3); letter-spacing: 0.01em; margin-bottom: 4px; }
+.metric-card .val { font-family: var(--serif); font-size: 24px; color: var(--ink); line-height: 1.1; }
+.metric-card .commentary { font-family: var(--serif); font-style: italic; font-size: 13px; color: var(--ink-2); line-height: 1.55; padding-top: 4px; border-top: 1px solid var(--rule); margin-top: 4px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; font-family: var(--sans); font-size: 10px; font-weight: 500; letter-spacing: 0.01em; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 3px; }
+.badge.up   { color: var(--up);   border-color: color-mix(in oklab,var(--up) 40%,var(--rule)); }
+.badge.down { color: var(--down); border-color: color-mix(in oklab,var(--down) 40%,var(--rule)); }
+.badge.warn { color: var(--warn); border-color: color-mix(in oklab,var(--warn) 40%,var(--rule)); }
+.badge.info { color: var(--info); border-color: color-mix(in oklab,var(--info) 40%,var(--rule)); }
+.badge.solid { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 600; }
+.dots::after { content: '...'; display: inline-block; animation: dots 1.2s steps(4,end) infinite; letter-spacing: 0.15em; }
+@keyframes dots { 0%,20%{content:''} 40%{content:'.'} 60%{content:'..'} 80%,100%{content:'...'} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+
+<script>
+/* ============================================================
+   data.js — grounded financial state, May 27 2026.
+   ============================================================ */
+window.MERIDIAN_DATA = (() => {
+  const FX = { EURUSD: 1.1638, USDVND: 26333.15, EURVND: 30661.38 };
+  const CATEGORIES = [
+    { id: 'an_uong',   en: 'Food & drink',  vn: 'Ăn uống',       cls: 'cat-an_uong' },
+    { id: 'must_have', en: 'Essentials',    vn: 'Must have',     cls: 'cat-must_have' },
+    { id: 'optional',  en: 'Discretionary', vn: 'Optional',      cls: 'cat-optional' },
+    { id: 'khac',      en: 'Other',         vn: 'Chi tiêu khác', cls: 'cat-khac' },
+    { id: 'me',        en: 'To mom',        vn: 'gửi mẹ',        cls: 'cat-me' },
+    { id: 'income',    en: 'Income',        vn: 'Thu nhập',      cls: 'cat-income' },
+  ];
+  const ACCOUNTS = [
+    { id: 'bnp',     name: 'BNP Paribas', ccy: 'EUR', balance: 8394.46, bank: 'BNP',     note: 'Feb mom payment (70M ₫) set aside here' },
+    { id: 'revolut', name: 'Revolut',     ccy: 'USD', balance: 6951.71, bank: 'Revolut', note: 'Mar + Apr mom payments (140M ₫) set aside here' },
+  ];
+  const LOAN_TOTAL_VND = 1_500_000_000;
+  const LOAN_SCHEDULE = [
+    { month: '2025-11', amount: 60_000_000,  status: 'remitted' },
+    { month: '2025-12', amount: 70_000_000,  status: 'remitted' },
+    { month: '2026-01', amount: 70_000_000,  status: 'remitted' },
+    { month: '2026-02', amount: 70_000_000,  status: 'accrued',  acct: 'BNP' },
+    { month: '2026-03', amount: 70_000_000,  status: 'accrued',  acct: 'Revolut' },
+    { month: '2026-04', amount: 70_000_000,  status: 'accrued',  acct: 'Revolut' },
+    { month: '2026-05', amount: 70_000_000,  status: 'scheduled' },
+    { month: '2026-06', amount: 70_000_000,  status: 'scheduled' },
+    { month: '2026-07', amount: 70_000_000,  status: 'scheduled' },
+    { month: '2026-08', amount: 70_000_000,  status: 'scheduled' },
+    { month: '2026-09', amount: 70_000_000,  status: 'scheduled' },
+    { month: '2026-10', amount: 80_000_000,  status: 'scheduled' },
+    { month: '2026-11', amount: 80_000_000,  status: 'scheduled' },
+    { month: '2026-12', amount: 80_000_000,  status: 'scheduled' },
+    { month: '2027-01', amount: 80_000_000,  status: 'projected' },
+    { month: '2027-02', amount: 80_000_000,  status: 'projected' },
+    { month: '2027-03', amount: 80_000_000,  status: 'projected' },
+    { month: '2027-04', amount: 80_000_000,  status: 'projected' },
+    { month: '2027-05', amount: 80_000_000,  status: 'projected' },
+    { month: '2027-06', amount: 60_000_000,  status: 'projected' },
+  ];
+  const MONTHLY_INPUTS = [
+    { month: '2025-11', income_usd: 3850, income_eur: 3641, mom_set_aside: 60_000_000 },
+    { month: '2025-12', income_usd: 3675, income_eur: 3507, mom_set_aside: 70_000_000 },
+    { month: '2026-01', income_usd: 3850, income_eur: 3720, mom_set_aside: 70_000_000 },
+    { month: '2026-02', income_usd: 3850, income_eur: 3691, mom_set_aside: 70_000_000 },
+    { month: '2026-03', income_usd: 3850, income_eur: 3626, mom_set_aside: 70_000_000 },
+    { month: '2026-04', income_usd: 3675, income_eur: 3139, mom_set_aside: 70_000_000 },
+    { month: '2026-05', income_usd: 0,    income_eur: 0,    mom_set_aside: 0 },
+  ];
+  const HISTORY = [
+    { m: '2025-11', income_usd: 3850, income_eur: 3641, expense: 892,  an_uong: 284, must_have: 432, optional: 136, khac: 40 },
+    { m: '2025-12', income_usd: 3675, income_eur: 3507, expense: 1284, an_uong: 388, must_have: 582, optional: 274, khac: 40 },
+    { m: '2026-01', income_usd: 3850, income_eur: 3720, expense: 702,  an_uong: 212, must_have: 352, optional: 108, khac: 30 },
+    { m: '2026-02', income_usd: 3850, income_eur: 3691, expense: 768,  an_uong: 244, must_have: 368, optional: 116, khac: 40 },
+    { m: '2026-03', income_usd: 3850, income_eur: 3626, expense: 922,  an_uong: 286, must_have: 448, optional: 148, khac: 40 },
+    { m: '2026-04', income_usd: 3850, income_eur: 3571, expense: 1042, an_uong: 334, must_have: 502, optional: 166, khac: 40 },
+    { m: '2026-05', income_usd: 0,    income_eur: 0,    expense: 655,  an_uong: 178, must_have: 401, optional: 76,  khac: 0  },
+  ];
+  const ENTRIES = [
+    { id:'n01',date:'2025-11-04',cat:'an_uong',label:'Sukiya',amount:5.25,ccy:'EUR'},
+    { id:'n02',date:'2025-11-04',cat:'an_uong',label:'NTUC đồ ăn sáng',amount:8.55,ccy:'EUR'},
+    { id:'n03',date:'2025-11-04',cat:'an_uong',label:'IJooz',amount:1.33,ccy:'EUR'},
+    { id:'n04',date:'2025-11-04',cat:'khac',label:'Vé máy bay',amount:127.28,ccy:'EUR'},
+    { id:'n05',date:'2025-11-06',cat:'must_have',label:'MRT',amount:3.47,ccy:'EUR'},
+    { id:'n06',date:'2025-11-06',cat:'optional',label:'ZUS coffee',amount:3.85,ccy:'EUR'},
+    { id:'n07',date:'2025-11-06',cat:'an_uong',label:'KFC dinner',amount:15.98,ccy:'EUR'},
+    { id:'n08',date:'2025-11-06',cat:'an_uong',label:'IJooz',amount:1.33,ccy:'EUR'},
+    { id:'n09',date:'2025-11-07',cat:'optional',label:'Starbucks',amount:10.01,ccy:'EUR'},
+    { id:'n10',date:'2025-11-08',cat:'an_uong',label:'late dinner',amount:7.84,ccy:'EUR'},
+    { id:'n11',date:'2025-11-08',cat:'an_uong',label:'milk coconut water',amount:7.54,ccy:'EUR'},
+    { id:'n12',date:'2025-11-09',cat:'an_uong',label:'7-11',amount:1.87,ccy:'EUR'},
+    { id:'n13',date:'2025-11-10',cat:'an_uong',label:'di sieu thi',amount:13.51,ccy:'EUR'},
+    { id:'n14',date:'2025-11-10',cat:'must_have',label:'MRT',amount:4.83,ccy:'EUR'},
+    { id:'n15',date:'2025-11-14',cat:'an_uong',label:'toast box',amount:4.71,ccy:'EUR'},
+    { id:'n16',date:'2025-11-15',cat:'optional',label:'matcha with cousins',amount:4.98,ccy:'EUR'},
+    { id:'n17',date:'2025-11-15',cat:'must_have',label:'di tau',amount:2.59,ccy:'EUR'},
+    { id:'n18',date:'2025-11-16',cat:'an_uong',label:'an trua',amount:9.11,ccy:'EUR'},
+    { id:'n19',date:'2025-11-17',cat:'must_have',label:'MRT',amount:2.61,ccy:'EUR'},
+    { id:'n20',date:'2025-11-18',cat:'an_uong',label:'lunch yong tau foo',amount:4.45,ccy:'EUR'},
+    { id:'n21',date:'2025-11-19',cat:'an_uong',label:'lunch banh my',amount:13.82,ccy:'EUR'},
+    { id:'n22',date:'2025-11-19',cat:'must_have',label:'planner muji',amount:9.21,ccy:'EUR'},
+    { id:'n23',date:'2025-11-19',cat:'an_uong',label:'potato corner',amount:2.13,ccy:'EUR'},
+    { id:'n24',date:'2025-11-20',cat:'an_uong',label:'cococane',amount:5.50,ccy:'EUR'},
+    { id:'n25',date:'2025-11-21',cat:'optional',label:'MRT (optional)',amount:2.84,ccy:'EUR'},
+    { id:'n26',date:'2025-11-21',cat:'optional',label:'bus JB',amount:1.33,ccy:'EUR'},
+    { id:'n27',date:'2025-11-22',cat:'must_have',label:'MRT + bus JB',amount:1.81,ccy:'EUR'},
+    { id:'n28',date:'2025-11-22',cat:'an_uong',label:'IJOOZ',amount:1.34,ccy:'EUR'},
+    { id:'n29',date:'2025-11-23',cat:'must_have',label:'MRT',amount:4.20,ccy:'EUR'},
+    { id:'n30',date:'2025-11-23',cat:'optional',label:'potato corner',amount:3.87,ccy:'EUR'},
+    { id:'n31',date:'2025-11-23',cat:'an_uong',label:'sieu thi',amount:2.94,ccy:'EUR'},
+    { id:'n32',date:'2025-11-24',cat:'must_have',label:'MRT',amount:2.62,ccy:'EUR'},
+    { id:'n33',date:'2025-11-24',cat:'an_uong',label:'an trua',amount:6.53,ccy:'EUR'},
+    { id:'n34',date:'2025-11-24',cat:'an_uong',label:'sieu thi',amount:20.39,ccy:'EUR'},
+    { id:'n35',date:'2025-11-26',cat:'an_uong',label:'potatocorner',amount:2.14,ccy:'EUR'},
+    { id:'n36',date:'2025-11-26',cat:'optional',label:'matcha with him',amount:11.95,ccy:'EUR'},
+    { id:'n37',date:'2025-11-27',cat:'an_uong',label:'fairprice',amount:2.39,ccy:'EUR'},
+    { id:'n38',date:'2025-11-27',cat:'must_have',label:'MRT',amount:1.98,ccy:'EUR'},
+    { id:'n39',date:'2025-11-28',cat:'an_uong',label:'fried chicken for everyone',amount:12.68,ccy:'EUR'},
+    { id:'n40',date:'2025-11-30',cat:'must_have',label:'MRT',amount:4.03,ccy:'EUR'},
+    { id:'n41',date:'2025-11-30',cat:'optional',label:'starbucks',amount:5.01,ccy:'EUR'},
+    { id:'n42',date:'2025-11-30',cat:'an_uong',label:'dinner with him',amount:40.79,ccy:'EUR'},
+    { id:'n43',date:'2025-11-30',cat:'must_have',label:'MRT',amount:5.01,ccy:'EUR'},
+    { id:'n44',date:'2025-11-30',cat:'an_uong',label:'breadtalk',amount:3.19,ccy:'EUR'},
+    { id:'d01',date:'2025-12-01',cat:'an_uong',label:'di sieu thi (diner)',amount:13.21,ccy:'EUR'},
+    { id:'d02',date:'2025-12-03',cat:'an_uong',label:'paris baguette',amount:4.52,ccy:'EUR'},
+    { id:'d03',date:'2025-12-03',cat:'optional',label:'june',amount:13.48,ccy:'EUR'},
+    { id:'d04',date:'2025-12-04',cat:'must_have',label:'MRT',amount:2.79,ccy:'EUR'},
+    { id:'d05',date:'2025-12-04',cat:'an_uong',label:'lunch sukiya',amount:5.57,ccy:'EUR'},
+    { id:'d06',date:'2025-12-04',cat:'an_uong',label:'sieu thi',amount:12.95,ccy:'EUR'},
+    { id:'d07',date:'2025-12-05',cat:'an_uong',label:'IJOOZ',amount:1.33,ccy:'EUR'},
+    { id:'d08',date:'2025-12-06',cat:'must_have',label:'MRT',amount:4.02,ccy:'EUR'},
+    { id:'d09',date:'2025-12-06',cat:'must_have',label:'lunch novena',amount:5.72,ccy:'EUR'},
+    { id:'d10',date:'2025-12-06',cat:'optional',label:'bia',amount:13.96,ccy:'EUR'},
+    { id:'d11',date:'2025-12-07',cat:'must_have',label:'MRT',amount:3.19,ccy:'EUR'},
+    { id:'d12',date:'2025-12-07',cat:'an_uong',label:'lunch u mian',amount:3.33,ccy:'EUR'},
+    { id:'d13',date:'2025-12-07',cat:'an_uong',label:'sieu thi dinner (beef stew)',amount:17.62,ccy:'EUR'},
+    { id:'d14',date:'2025-12-07',cat:'optional',label:'donki',amount:8.98,ccy:'EUR'},
+    { id:'d15',date:'2025-12-07',cat:'optional',label:'boba',amount:4.66,ccy:'EUR'},
+    { id:'d16',date:'2025-12-08',cat:'must_have',label:'MRT',amount:2.61,ccy:'EUR'},
+    { id:'d17',date:'2025-12-08',cat:'an_uong',label:'sieu thi',amount:5.49,ccy:'EUR'},
+    { id:'d18',date:'2025-12-08',cat:'an_uong',label:'dinner',amount:4.39,ccy:'EUR'},
+    { id:'d19',date:'2025-12-09',cat:'an_uong',label:'lunch yong tau foo',amount:4.58,ccy:'EUR'},
+    { id:'d20',date:'2025-12-09',cat:'an_uong',label:'sieu thi dinner',amount:4.74,ccy:'EUR'},
+    { id:'d21',date:'2025-12-09',cat:'optional',label:'IJOOZ',amount:1.33,ccy:'EUR'},
+    { id:'d22',date:'2025-12-10',cat:'optional',label:'snack',amount:3.06,ccy:'EUR'},
+    { id:'d23',date:'2025-12-11',cat:'an_uong',label:'sieu thi + food',amount:19.09,ccy:'EUR'},
+    { id:'d24',date:'2025-12-13',cat:'must_have',label:'guardian (eyedrop)',amount:10.24,ccy:'EUR'},
+    { id:'d25',date:'2025-12-13',cat:'an_uong',label:'lunch + breadtalk',amount:12.30,ccy:'EUR'},
+    { id:'d26',date:'2025-12-14',cat:'must_have',label:'MRT',amount:3.99,ccy:'EUR'},
+    { id:'d27',date:'2025-12-15',cat:'must_have',label:'MRT',amount:3.59,ccy:'EUR'},
+    { id:'d28',date:'2025-12-15',cat:'optional',label:'IJOOZ',amount:1.33,ccy:'EUR'},
+    { id:'d29',date:'2025-12-15',cat:'an_uong',label:'food',amount:19.48,ccy:'EUR'},
+    { id:'d30',date:'2025-12-16',cat:'must_have',label:'MRT',amount:3.96,ccy:'EUR'},
+    { id:'d31',date:'2025-12-16',cat:'optional',label:'coffee airport',amount:7.67,ccy:'EUR'},
+    { id:'d32',date:'2025-12-16',cat:'optional',label:'sim Phuket',amount:8.08,ccy:'EUR'},
+    { id:'d33',date:'2025-12-17',cat:'optional',label:'massage (Phuket) x2',amount:21.91,ccy:'EUR'},
+    { id:'d34',date:'2025-12-18',cat:'optional',label:'linh tinh Phuket',amount:5.72,ccy:'EUR'},
+    { id:'d35',date:'2025-12-18',cat:'an_uong',label:'matcha Phuket',amount:4.50,ccy:'EUR'},
+    { id:'d36',date:'2025-12-19',cat:'an_uong',label:'Cava Bien',amount:120.07,ccy:'EUR'},
+    { id:'d37',date:'2025-12-20',cat:'optional',label:'matcha Phuket x2',amount:7.12,ccy:'EUR'},
+    { id:'d38',date:'2025-12-22',cat:'an_uong',label:'beard papa',amount:7.29,ccy:'EUR'},
+    { id:'d39',date:'2025-12-23',cat:'must_have',label:'MRT',amount:1.19,ccy:'EUR'},
+    { id:'d40',date:'2025-12-26',cat:'an_uong',label:'IJOOZ',amount:2.66,ccy:'EUR'},
+    { id:'d41',date:'2025-12-27',cat:'an_uong',label:'dinner x2',amount:37.53,ccy:'EUR'},
+    { id:'d42',date:'2025-12-28',cat:'must_have',label:'MRT',amount:2.72,ccy:'EUR'},
+    { id:'d43',date:'2025-12-28',cat:'optional',label:'popcorn movies',amount:7.24,ccy:'EUR'},
+    { id:'d44',date:'2025-12-29',cat:'must_have',label:'MRT',amount:4.88,ccy:'EUR'},
+    { id:'d45',date:'2025-12-29',cat:'an_uong',label:'lunch kookee',amount:4.58,ccy:'EUR'},
+    { id:'d46',date:'2025-12-29',cat:'an_uong',label:'sieu thi',amount:6.77,ccy:'EUR'},
+    { id:'d47',date:'2025-12-31',cat:'must_have',label:'MRT',amount:1.32,ccy:'EUR'},
+    { id:'d48',date:'2025-12-31',cat:'optional',label:'bus to JB',amount:1.35,ccy:'EUR'},
+    { id:'d49',date:'2025-12-31',cat:'optional',label:'in Melaka',amount:17.29,ccy:'EUR'},
+    { id:'j01',date:'2026-01-01',cat:'must_have',label:'bus Melaka x2',amount:9.33,ccy:'EUR'},
+    { id:'j02',date:'2026-01-01',cat:'an_uong',label:'hotpot in Melaka',amount:43.10,ccy:'EUR'},
+    { id:'j03',date:'2026-01-02',cat:'optional',label:'bus JB',amount:1.33,ccy:'EUR'},
+    { id:'j04',date:'2026-01-02',cat:'must_have',label:'MRT',amount:1.32,ccy:'EUR'},
+    { id:'j05',date:'2026-01-02',cat:'an_uong',label:'sieu thi diner',amount:17.98,ccy:'EUR'},
+    { id:'j06',date:'2026-01-03',cat:'an_uong',label:'diner (pepper fish) x2',amount:18.22,ccy:'EUR'},
+    { id:'j07',date:'2026-01-03',cat:'an_uong',label:'viet market',amount:13.18,ccy:'EUR'},
+    { id:'j08',date:'2026-01-04',cat:'must_have',label:'MRT',amount:7.06,ccy:'EUR'},
+    { id:'j09',date:'2026-01-04',cat:'an_uong',label:'diner pho',amount:11.00,ccy:'EUR'},
+    { id:'j10',date:'2026-01-04',cat:'must_have',label:'MRT',amount:2.10,ccy:'EUR'},
+    { id:'j11',date:'2026-01-04',cat:'an_uong',label:'NTUC',amount:7.21,ccy:'EUR'},
+    { id:'j12',date:'2026-01-05',cat:'optional',label:'starbucks',amount:5.60,ccy:'EUR'},
+    { id:'j13',date:'2026-01-06',cat:'must_have',label:'MRT',amount:2.74,ccy:'EUR'},
+    { id:'j14',date:'2026-01-06',cat:'an_uong',label:'banh an sang',amount:4.00,ccy:'EUR'},
+    { id:'j15',date:'2026-01-08',cat:'must_have',label:'MRT',amount:2.75,ccy:'EUR'},
+    { id:'j16',date:'2026-01-09',cat:'an_uong',label:'tea',amount:1.41,ccy:'EUR'},
+    { id:'j17',date:'2026-01-09',cat:'an_uong',label:'diner x2 (cash)',amount:30.31,ccy:'EUR'},
+    { id:'j18',date:'2026-01-10',cat:'must_have',label:'MRT',amount:4.93,ccy:'EUR'},
+    { id:'j19',date:'2026-01-10',cat:'an_uong',label:'di sieu thi (diner + fruits)',amount:20.21,ccy:'EUR'},
+    { id:'j20',date:'2026-01-10',cat:'optional',label:'boba',amount:3.95,ccy:'EUR'},
+    { id:'j21',date:'2026-01-10',cat:'optional',label:'snack',amount:1.08,ccy:'EUR'},
+    { id:'j22',date:'2026-01-11',cat:'must_have',label:'MRT',amount:3.44,ccy:'EUR'},
+    { id:'j23',date:'2026-01-11',cat:'must_have',label:'IKEA (organisers)',amount:7.83,ccy:'EUR'},
+    { id:'j24',date:'2026-01-11',cat:'optional',label:'cake + kuih',amount:27.43,ccy:'EUR'},
+    { id:'j25',date:'2026-01-11',cat:'an_uong',label:'diner ingredients (hosting night)',amount:16.53,ccy:'EUR'},
+    { id:'j26',date:'2026-01-12',cat:'must_have',label:'MRT',amount:2.75,ccy:'EUR'},
+    { id:'j27',date:'2026-01-14',cat:'optional',label:'ca he',amount:5.22,ccy:'EUR'},
+    { id:'j28',date:'2026-01-15',cat:'must_have',label:'MRT',amount:2.12,ccy:'EUR'},
+    { id:'j29',date:'2026-01-15',cat:'an_uong',label:'breadtalk',amount:3.48,ccy:'EUR'},
+    { id:'j30',date:'2026-01-15',cat:'an_uong',label:'IJOOZ',amount:1.34,ccy:'EUR'},
+    { id:'j31',date:'2026-01-16',cat:'must_have',label:'MRT',amount:2.75,ccy:'EUR'},
+    { id:'j32',date:'2026-01-17',cat:'must_have',label:'MRT',amount:6.22,ccy:'EUR'},
+    { id:'j33',date:'2026-01-17',cat:'an_uong',label:'gyudon lunch',amount:6.24,ccy:'EUR'},
+    { id:'j34',date:'2026-01-17',cat:'an_uong',label:'supermarket',amount:29.92,ccy:'EUR'},
+    { id:'j35',date:'2026-01-18',cat:'an_uong',label:'sieu thi',amount:3.31,ccy:'EUR'},
+    { id:'j36',date:'2026-01-19',cat:'must_have',label:'grab nha',amount:0.42,ccy:'EUR'},
+    { id:'j37',date:'2026-01-19',cat:'optional',label:'ao cho shan haoo',amount:21.27,ccy:'EUR'},
+    { id:'j38',date:'2026-01-19',cat:'optional',label:'matcha glyph',amount:4.32,ccy:'EUR'},
+    { id:'j39',date:'2026-01-19',cat:'an_uong',label:'IJOOZ',amount:1.34,ccy:'EUR'},
+    { id:'j40',date:'2026-01-19',cat:'must_have',label:'cho kem',amount:32.93,ccy:'EUR'},
+    { id:'j41',date:'2026-01-28',cat:'must_have',label:'phone (vietnam)',amount:3.21,ccy:'EUR'},
+    { id:'j42',date:'2026-01-28',cat:'optional',label:'paris gateaux',amount:3.68,ccy:'EUR'},
+    { id:'j43',date:'2026-01-29',cat:'must_have',label:'chawan',amount:8.33,ccy:'EUR'},
+    { id:'j44',date:'2026-01-29',cat:'must_have',label:'matcha whisk',amount:2.54,ccy:'EUR'},
+    { id:'j45',date:'2026-01-30',cat:'optional',label:'blackbird',amount:2.28,ccy:'EUR'},
+    { id:'j46',date:'2026-01-30',cat:'optional',label:'boba di voi kem',amount:2.12,ccy:'EUR'},
+    { id:'j47',date:'2026-01-31',cat:'must_have',label:'jean',amount:18.07,ccy:'EUR'},
+    { id:'b01',date:'2026-02-01',cat:'must_have',label:'milk',amount:2.52,ccy:'EUR'},
+    { id:'b02',date:'2026-02-05',cat:'must_have',label:'phone cho bo',amount:9.78,ccy:'EUR'},
+    { id:'b03',date:'2026-02-06',cat:'an_uong',label:'bfast + coffee',amount:6.36,ccy:'EUR'},
+    { id:'b04',date:'2026-02-10',cat:'must_have',label:'toc',amount:12.97,ccy:'EUR'},
+    { id:'b05',date:'2026-02-11',cat:'optional',label:'blackbird',amount:6.52,ccy:'EUR'},
+    { id:'b06',date:'2026-02-12',cat:'an_uong',label:'bun dau w/ chuyen',amount:3.89,ccy:'EUR'},
+    { id:'b07',date:'2026-02-12',cat:'an_uong',label:'banh trai tet',amount:49.74,ccy:'EUR'},
+    { id:'b08',date:'2026-02-12',cat:'must_have',label:'uniqlo',amount:115.11,ccy:'EUR'},
+    { id:'b09',date:'2026-02-19',cat:'must_have',label:'angpow (Tet)',amount:115.91,ccy:'EUR'},
+    { id:'b10',date:'2026-02-20',cat:'must_have',label:'micellar water',amount:3.82,ccy:'EUR'},
+    { id:'b11',date:'2026-02-21',cat:'must_have',label:'SIN HAN flight',amount:74.27,ccy:'EUR'},
+    { id:'b12',date:'2026-02-21',cat:'an_uong',label:'running bean',amount:19.19,ccy:'EUR'},
+    { id:'b13',date:'2026-02-21',cat:'optional',label:'grab',amount:1.20,ccy:'EUR'},
+    { id:'b14',date:'2026-02-23',cat:'optional',label:'blackbird',amount:1.97,ccy:'EUR'},
+    { id:'b15',date:'2026-02-23',cat:'must_have',label:'micellar water (Thuong Tin)',amount:4.41,ccy:'EUR'},
+    { id:'b16',date:'2026-02-24',cat:'must_have',label:'phone SFR hors forfait',amount:2.65,ccy:'EUR'},
+    { id:'b17',date:'2026-02-27',cat:'must_have',label:'phone',amount:3.26,ccy:'EUR'},
+    { id:'b18',date:'2026-02-22',cat:'an_uong',label:'rolls',amount:24.05,ccy:'EUR'},
+    { id:'b19',date:'2026-02-22',cat:'an_uong',label:'boba',amount:2.92,ccy:'EUR'},
+    { id:'b20',date:'2026-02-23',cat:'must_have',label:'anh the',amount:1.62,ccy:'EUR'},
+    { id:'b21',date:'2026-02-28',cat:'must_have',label:'book',amount:24.85,ccy:'EUR'},
+    { id:'b22',date:'2026-02-28',cat:'optional',label:'cafe',amount:1.64,ccy:'EUR'},
+    { id:'m01',date:'2026-03-03',cat:'must_have',label:'pate bam na',amount:6.75,ccy:'EUR'},
+    { id:'m02',date:'2026-03-04',cat:'must_have',label:'lam lai ho chieu',amount:3.28,ccy:'EUR'},
+    { id:'m03',date:'2026-03-05',cat:'must_have',label:'lay cao rang',amount:9.84,ccy:'EUR'},
+    { id:'m04',date:'2026-03-07',cat:'must_have',label:'hoa tang me',amount:8.86,ccy:'EUR'},
+    { id:'m05',date:'2026-03-07',cat:'must_have',label:'eyedrop + tay giun',amount:3.94,ccy:'EUR'},
+    { id:'m06',date:'2026-03-08',cat:'must_have',label:'sunscreen',amount:15.00,ccy:'EUR'},
+    { id:'m07',date:'2026-03-10',cat:'must_have',label:'cho da cocoon',amount:26.77,ccy:'EUR'},
+    { id:'m08',date:'2026-03-14',cat:'must_have',label:'may hut bui cho me',amount:132.40,ccy:'EUR'},
+    { id:'m09',date:'2026-03-14',cat:'an_uong',label:'lunch w chuyen & kem',amount:12.46,ccy:'EUR'},
+    { id:'m10',date:'2026-03-18',cat:'optional',label:'cafe',amount:3.82,ccy:'EUR'},
+    { id:'m11',date:'2026-03-19',cat:'must_have',label:'sac dien thoai',amount:6.56,ccy:'EUR'},
+    { id:'m12',date:'2026-03-20',cat:'must_have',label:'kham mat',amount:9.84,ccy:'EUR'},
+    { id:'m13',date:'2026-03-20',cat:'must_have',label:'thuoc mat',amount:17.71,ccy:'EUR'},
+    { id:'m14',date:'2026-03-20',cat:'an_uong',label:'lunch w mom',amount:18.06,ccy:'EUR'},
+    { id:'m15',date:'2026-03-20',cat:'optional',label:'koi the w chuyen',amount:5.27,ccy:'EUR'},
+    { id:'m16',date:'2026-03-21',cat:'must_have',label:'boc passport',amount:0.62,ccy:'EUR'},
+    { id:'m17',date:'2026-03-23',cat:'must_have',label:'spotify',amount:2.44,ccy:'EUR'},
+    { id:'m18',date:'2026-03-24',cat:'must_have',label:'Objectif Francais B2',amount:68.55,ccy:'EUR'},
+    { id:'m19',date:'2026-03-28',cat:'must_have',label:'ca he',amount:2.11,ccy:'EUR'},
+    { id:'m20',date:'2026-03-28',cat:'must_have',label:'ca he',amount:2.60,ccy:'EUR'},
+    { id:'m21',date:'2026-03-28',cat:'optional',label:'phe la',amount:6.09,ccy:'EUR'},
+    { id:'a01',date:'2026-04-01',cat:'optional',label:'matcha w hong anh',amount:2.76,ccy:'EUR'},
+    { id:'a02',date:'2026-04-02',cat:'must_have',label:'taxi to airport',amount:5.86,ccy:'EUR'},
+    { id:'a03',date:'2026-04-02',cat:'must_have',label:'Tripflex',amount:28.00,ccy:'EUR'},
+    { id:'a04',date:'2026-04-03',cat:'optional',label:'glyph',amount:10.81,ccy:'EUR'},
+    { id:'a05',date:'2026-04-03',cat:'must_have',label:'ijooz x2',amount:2.72,ccy:'EUR'},
+    { id:'a06',date:'2026-04-04',cat:'must_have',label:'MRT',amount:3.33,ccy:'EUR'},
+    { id:'a07',date:'2026-04-04',cat:'must_have',label:'kookee',amount:4.67,ccy:'EUR'},
+    { id:'a08',date:'2026-04-04',cat:'optional',label:'dinner (treat the girls)',amount:92.64,ccy:'EUR'},
+    { id:'a09',date:'2026-04-05',cat:'must_have',label:'MRT',amount:4.45,ccy:'EUR'},
+    { id:'a10',date:'2026-04-05',cat:'an_uong',label:'nau bua toi (tous)',amount:55.67,ccy:'EUR'},
+    { id:'a11',date:'2026-04-07',cat:'must_have',label:'MRT',amount:2.78,ccy:'EUR'},
+    { id:'a12',date:'2026-04-07',cat:'optional',label:'starbucks x2',amount:6.02,ccy:'EUR'},
+    { id:'a13',date:'2026-04-07',cat:'optional',label:'beer',amount:8.54,ccy:'EUR'},
+    { id:'a14',date:'2026-04-08',cat:'must_have',label:'MRT',amount:3.77,ccy:'EUR'},
+    { id:'a15',date:'2026-04-08',cat:'an_uong',label:'manicai rice',amount:4.65,ccy:'EUR'},
+    { id:'a16',date:'2026-04-09',cat:'an_uong',label:'an uong',amount:4.39,ccy:'EUR'},
+    { id:'a17',date:'2026-04-09',cat:'optional',label:'coffee with him',amount:11.80,ccy:'EUR'},
+    { id:'a18',date:'2026-04-09',cat:'an_uong',label:'sieu thi',amount:5.11,ccy:'EUR'},
+    { id:'a19',date:'2026-04-10',cat:'must_have',label:'MRT',amount:3.55,ccy:'EUR'},
+    { id:'a20',date:'2026-04-11',cat:'optional',label:'matcha x2',amount:13.29,ccy:'EUR'},
+    { id:'a21',date:'2026-04-11',cat:'an_uong',label:'IJOOZ x2',amount:2.70,ccy:'EUR'},
+    { id:'a22',date:'2026-04-11',cat:'optional',label:'market place by jason',amount:5.04,ccy:'EUR'},
+    { id:'a23',date:'2026-04-12',cat:'must_have',label:'MRT',amount:4.41,ccy:'EUR'},
+    { id:'a24',date:'2026-04-12',cat:'an_uong',label:'ban mian',amount:3.36,ccy:'EUR'},
+    { id:'a25',date:'2026-04-12',cat:'an_uong',label:'sieu thi an uong',amount:22.12,ccy:'EUR'},
+    { id:'a26',date:'2026-04-12',cat:'optional',label:'starbucks',amount:5.11,ccy:'EUR'},
+    { id:'a27',date:'2026-04-13',cat:'must_have',label:'MRT',amount:2.76,ccy:'EUR'},
+    { id:'a28',date:'2026-04-13',cat:'an_uong',label:'sukiya',amount:4.64,ccy:'EUR'},
+    { id:'a29',date:'2026-04-14',cat:'must_have',label:'MRT',amount:0.07,ccy:'EUR'},
+    { id:'a30',date:'2026-04-14',cat:'optional',label:'heytea',amount:4.62,ccy:'EUR'},
+    { id:'a31',date:'2026-04-14',cat:'must_have',label:'la roche posay',amount:9.57,ccy:'EUR'},
+    { id:'a32',date:'2026-04-15',cat:'optional',label:'june x2',amount:13.23,ccy:'EUR'},
+    { id:'a33',date:'2026-04-15',cat:'optional',label:'tim hortons',amount:3.82,ccy:'EUR'},
+    { id:'a34',date:'2026-04-16',cat:'an_uong',label:'IJOOZ',amount:1.34,ccy:'EUR'},
+    { id:'a35',date:'2026-04-17',cat:'an_uong',label:'teh',amount:1.01,ccy:'EUR'},
+    { id:'a36',date:'2026-04-17',cat:'must_have',label:'dau xa',amount:5.22,ccy:'EUR'},
+    { id:'a37',date:'2026-04-17',cat:'must_have',label:'naoki',amount:26.73,ccy:'EUR'},
+    { id:'a38',date:'2026-04-18',cat:'optional',label:'otter',amount:4.83,ccy:'EUR'},
+    { id:'a39',date:'2026-04-18',cat:'an_uong',label:'jolibee x2',amount:15.19,ccy:'EUR'},
+    { id:'a40',date:'2026-04-19',cat:'an_uong',label:'bfast',amount:5.97,ccy:'EUR'},
+    { id:'a41',date:'2026-04-19',cat:'must_have',label:'MRT',amount:0.07,ccy:'EUR'},
+    { id:'a42',date:'2026-04-19',cat:'an_uong',label:'dinner',amount:17.53,ccy:'EUR'},
+    { id:'a43',date:'2026-04-20',cat:'an_uong',label:'an un',amount:13.28,ccy:'EUR'},
+    { id:'a44',date:'2026-04-21',cat:'optional',label:'cafe with the girls',amount:5.62,ccy:'EUR'},
+    { id:'a45',date:'2026-04-21',cat:'optional',label:'coc',amount:3.62,ccy:'EUR'},
+    { id:'a46',date:'2026-04-22',cat:'an_uong',label:'coffee',amount:1.88,ccy:'EUR'},
+    { id:'a47',date:'2026-04-22',cat:'optional',label:'claude pro',amount:16.65,ccy:'EUR'},
+    { id:'a48',date:'2026-04-23',cat:'an_uong',label:'toast boxx',amount:8.32,ccy:'EUR'},
+    { id:'a49',date:'2026-04-23',cat:'optional',label:'starbucks',amount:5.31,ccy:'EUR'},
+    { id:'a50',date:'2026-04-23',cat:'an_uong',label:'ijooz',amount:2.02,ccy:'EUR'},
+    { id:'a51',date:'2026-04-23',cat:'an_uong',label:'an un o zoo',amount:12.56,ccy:'EUR'},
+    { id:'a52',date:'2026-04-24',cat:'must_have',label:'MRT',amount:10.51,ccy:'EUR'},
+    { id:'a53',date:'2026-04-24',cat:'must_have',label:'to JB',amount:2.08,ccy:'EUR'},
+    { id:'a54',date:'2026-04-24',cat:'must_have',label:'Objectif Francais B2',amount:67.96,ccy:'EUR'},
+    { id:'a55',date:'2026-04-24',cat:'must_have',label:'do o JB',amount:17.76,ccy:'EUR'},
+    { id:'a56',date:'2026-04-25',cat:'must_have',label:'share cost',amount:67.75,ccy:'EUR'},
+    { id:'a57',date:'2026-04-25',cat:'optional',label:'pizza an toi',amount:40.36,ccy:'EUR'},
+    { id:'a58',date:'2026-04-27',cat:'optional',label:'lam flan',amount:34.48,ccy:'EUR'},
+    { id:'a59',date:'2026-04-29',cat:'an_uong',label:'kookee',amount:4.70,ccy:'EUR'},
+    { id:'a60',date:'2026-04-30',cat:'an_uong',label:'sieu thi',amount:4.79,ccy:'EUR'},
+    { id:'a61',date:'2026-04-30',cat:'must_have',label:'MRT',amount:0.07,ccy:'EUR'},
+    { id:'e3',date:'2026-05-01',cat:'optional',label:'coffee date',amount:12.47,ccy:'EUR'},
+    { id:'e4',date:'2026-05-01',cat:'optional',label:'museum',amount:16.79,ccy:'EUR'},
+    { id:'e5',date:'2026-05-01',cat:'an_uong',label:'diner',amount:3.66,ccy:'EUR'},
+    { id:'e6',date:'2026-05-02',cat:'an_uong',label:'donki tea',amount:1.95,ccy:'EUR'},
+    { id:'e7',date:'2026-05-02',cat:'an_uong',label:'diner x2',amount:41.65,ccy:'EUR'},
+    { id:'e8',date:'2026-05-03',cat:'an_uong',label:'di cho nau diner + dessert',amount:39.40,ccy:'EUR'},
+    { id:'e9',date:'2026-05-03',cat:'must_have',label:'anywheel',amount:10.00,ccy:'EUR'},
+    { id:'eA',date:'2026-05-03',cat:'an_uong',label:'sieu thi',amount:8.20,ccy:'EUR'},
+    { id:'eB',date:'2026-05-04',cat:'an_uong',label:'sieu thi',amount:7.99,ccy:'EUR'},
+    { id:'eC',date:'2026-05-06',cat:'must_have',label:'MRT',amount:6.64,ccy:'EUR'},
+    { id:'eD',date:'2026-05-06',cat:'an_uong',label:'sieu thi',amount:7.24,ccy:'EUR'},
+    { id:'eE',date:'2026-05-07',cat:'must_have',label:'anywheel',amount:6.73,ccy:'EUR'},
+    { id:'eF',date:'2026-05-07',cat:'optional',label:'lemon tea',amount:5.05,ccy:'EUR'},
+    { id:'eG',date:'2026-05-08',cat:'an_uong',label:'wanton',amount:6.67,ccy:'EUR'},
+    { id:'eH',date:'2026-05-08',cat:'an_uong',label:'sieu thi',amount:3.67,ccy:'EUR'},
+    { id:'eI',date:'2026-05-08',cat:'an_uong',label:'bakery',amount:4.30,ccy:'EUR'},
+    { id:'eJ',date:'2026-05-08',cat:'an_uong',label:'an un',amount:7.33,ccy:'EUR'},
+    { id:'eK',date:'2026-05-09',cat:'must_have',label:'MRT',amount:3.40,ccy:'EUR'},
+    { id:'eL',date:'2026-05-10',cat:'must_have',label:'MRT',amount:4.52,ccy:'EUR'},
+    { id:'eN',date:'2026-05-11',cat:'must_have',label:'MRT',amount:3.69,ccy:'EUR'},
+    { id:'eO',date:'2026-05-11',cat:'an_uong',label:'ya kun',amount:4.30,ccy:'EUR'},
+    { id:'eP',date:'2026-05-11',cat:'must_have',label:'watsons',amount:6.32,ccy:'EUR'},
+    { id:'eQ',date:'2026-05-11',cat:'an_uong',label:'donki donki',amount:1.95,ccy:'EUR'},
+    { id:'eR',date:'2026-05-12',cat:'must_have',label:'MRT',amount:1.41,ccy:'EUR'},
+    { id:'eS',date:'2026-05-12',cat:'an_uong',label:'an un',amount:4.03,ccy:'EUR'},
+    { id:'eT',date:'2026-05-13',cat:'must_have',label:'MRT',amount:1.33,ccy:'EUR'},
+    { id:'eU',date:'2026-05-13',cat:'optional',label:'friess',amount:1.35,ccy:'EUR'},
+    { id:'eV',date:'2026-05-13',cat:'an_uong',label:'sieu thi',amount:14.42,ccy:'EUR'},
+    { id:'eW',date:'2026-05-13',cat:'an_uong',label:'cafe',amount:3.64,ccy:'EUR'},
+    { id:'eX',date:'2026-05-13',cat:'must_have',label:'sunscreen',amount:21.46,ccy:'EUR'},
+    { id:'eY',date:'2026-05-14',cat:'optional',label:'globaltix',amount:12.00,ccy:'EUR'},
+    { id:'eZ',date:'2026-05-14',cat:'an_uong',label:'ijooz',amount:1.35,ccy:'EUR'},
+    { id:'f0',date:'2026-05-14',cat:'an_uong',label:'donki donki',amount:2.69,ccy:'EUR'},
+    { id:'f1',date:'2026-05-15',cat:'must_have',label:'MRT',amount:2.77,ccy:'EUR'},
+    { id:'f2',date:'2026-05-15',cat:'an_uong',label:'7/11',amount:2.23,ccy:'EUR'},
+    { id:'f3',date:'2026-05-16',cat:'must_have',label:'padss',amount:2.58,ccy:'EUR'},
+    { id:'f4',date:'2026-05-17',cat:'an_uong',label:'nha he coffee',amount:1.81,ccy:'EUR'},
+    { id:'f5',date:'2026-05-17',cat:'optional',label:'nha he souvenir',amount:27.58,ccy:'EUR'},
+    { id:'f6',date:'2026-05-18',cat:'must_have',label:'airport taxi',amount:7.89,ccy:'EUR'},
+    { id:'f7',date:'2026-05-23',cat:'optional',label:'cafe',amount:1.63,ccy:'EUR'},
+    { id:'f8',date:'2026-05-23',cat:'must_have',label:'phone forfait',amount:3.27,ccy:'EUR'},
+    { id:'f9',date:'2026-05-23',cat:'must_have',label:'bday cake',amount:22.71,ccy:'EUR'},
+    { id:'fA',date:'2026-05-23',cat:'must_have',label:'spotify',amount:2.45,ccy:'EUR'},
+    { id:'fB',date:'2026-05-24',cat:'must_have',label:'TLS appointment',amount:25.50,ccy:'EUR'},
+    { id:'fC',date:'2026-05-24',cat:'must_have',label:'Objectif Francais B2',amount:68.41,ccy:'EUR'},
+    { id:'fD',date:'2026-05-25',cat:'must_have',label:'claude',amount:19.31,ccy:'EUR'},
+    { id:'fE',date:'2026-05-25',cat:'must_have',label:'nha trang',amount:180.51,ccy:'EUR'},
+    { id:'fF',date:'2026-05-25',cat:'an_uong',label:'ca phe',amount:9.26,ccy:'EUR'},
+  ];
+  const GOALS = [
+    { id:'g1', name:'Wedding & honeymoon',   target:12000, saved:3200, ccy:'EUR', by:'2027-09' },
+    { id:'g2', name:'Emergency fund (6 mo)', target:9000,  saved:4800, ccy:'EUR', by:'2027-12' },
+    { id:'g3', name:'House deposit (joint)', target:40000, saved:2400, ccy:'EUR', by:'2028-06' },
+  ];
+  const MACRO = [
+    { id:'fed',    name:'Fed Funds Rate',    group:'rates',  val:'3.50 — 3.75%', delta:'unchanged', trend:'flat', last:'2026-04-29', commentary:"Held for a third straight meeting with a divided 8-4 vote. New chair Warsh takes over mid-June — market expects no cut until at least Q3. USD weakening trend remains a tailwind for your EUR." },
+    { id:'ecb',    name:'ECB Deposit Rate',  group:'rates',  val:'2.00%',        delta:'-25 bps',   trend:'down', last:'2026-04-17', commentary:"ECB has cut steadily from 4% in 2023. At 2.00% now, near neutral. BNP balance earning very little. Plan to deploy it toward mom as FX is favorable." },
+    { id:'sbv',    name:'SBV Refi Rate',     group:'rates',  val:'4.50%',        delta:'unchanged', trend:'flat', last:'2026-05-12', commentary:"Vietnam keeping policy steady to support growth and defend the dong. VND holding — good for stability of your mom payment schedule." },
+    { id:'eurusd', name:'EUR / USD',         group:'fx',     val:'1.1638',       delta:'+0.4%',     trend:'up',   last:'live', commentary:"EUR stronger vs USD. Your Revolut $6,951 converts to ≈€5,973 at today's rate. Good to keep primary savings in EUR rather than USD." },
+    { id:'usdvnd', name:'USD / VND',         group:'fx',     val:'26,333',       delta:'+0.3%',     trend:'up',   last:'live', commentary:"VND slightly weaker vs USD. Your Revolut cash converts to more dong — favorable timing for remitting March + April set-asides." },
+    { id:'eurvnd', name:'EUR / VND',         group:'fx',     val:'30,661',       delta:'+0.8%',     trend:'up',   last:'live', commentary:"Sending €1,000 from BNP now yields 30.7M VND. Remitting the 210M ₫ set-aside at today's rate costs €6,849 — best value in months." },
+    { id:'cpi_us', name:'US CPI (YoY)',      group:'cpi',    val:'2.9%',         delta:'-0.1 pp',   trend:'down', last:'2026-05-13', commentary:"Slowly converging toward 2% target. No imminent Fed cut expected." },
+    { id:'cpi_ez', name:'EZ HICP (YoY)',     group:'cpi',    val:'2.2%',         delta:'+0.1 pp',   trend:'up',   last:'2026-05-16', commentary:"Near target. Services inflation stickier than goods. Real wages in France recovering — your purchasing power in EUR holds." },
+    { id:'cpi_vn', name:'VN CPI (YoY)',      group:'cpi',    val:'3.7%',         delta:'+0.2 pp',   trend:'up',   last:'2026-05-06', commentary:"Food prices sticky in Vietnam. Factor ~4% local drift into planning for mom's living costs." },
+    { id:'spx',    name:'S&P 500',           group:'equity', val:'5,847',        delta:'+0.6%',     trend:'up',   last:'live', commentary:"Still elevated. No urgency to enter — finish the debt, then DCA steadily from Jun '27." },
+    { id:'sxxp',   name:'Stoxx Europe 600',  group:'equity', val:'548',          delta:'+0.3%',     trend:'up',   last:'live', commentary:"Cheaper than US equities on a PE basis. EUR-denominated broad-market ETF is a natural future allocation." },
+    { id:'vnidx',  name:'VN-Index',          group:'equity', val:'1,320',        delta:'-0.4%',     trend:'down', last:'live', commentary:"Range-bound with thin liquidity. Interesting long-term given family ties, but not a priority until debt is clear." },
+    { id:'gold',   name:'Gold (XAU/USD)',    group:'comm',   val:'$4,520',       delta:'+1.1%',     trend:'up',   last:'live', commentary:"Near all-time highs. SJC gold in Vietnam carries a 10-15% premium — poor value vs just holding EUR or a gold ETF." },
+    { id:'oil',    name:'Brent Crude',       group:'comm',   val:'$68.40',       delta:'-0.8%',     trend:'down', last:'live', commentary:"Soft demand keeping a lid on prices. Low energy costs are a modest positive for household budgets in France." },
+  ];
+  const BRIEFING = {
+    date: '2026-05-27',
+    title: 'Tuesday morning — your week in context',
+    body: [
+      "You've sent 200M VND directly to mom (Nov–Jan), and another 210M is set aside in BNP and Revolut for Feb, Mar, Apr. That's 27% formally retired, 41% of the principal covered. Good pacing for seven months in — you're on schedule for June 2027.",
+      "Cash sits at €8,394 in BNP plus $6,952 in Revolut — about €14,790 combined at today's rate. Once you remit the three accrued months to mom, true free cash drops to roughly €7,000. EUR/VND at a six-month high makes now a good time to send those.",
+      "May run-rate: €655 through the 25th. The Nha Trang line (€181) and B2 French course (€68) are one-offs. Salary hasn't arrived yet for May — once it does, set aside 70M VND for mom first, then plan June."
+    ],
+    suggested: [
+      "Should I remit the BNP + Revolut accruals now?",
+      "How does the EUR rally affect my mom payments?",
+      "Am I overspending on discretionary this month?",
+      "What should I do with savings once I'm debt-free?",
+      "Pre-wedding: should we open a joint savings account?",
+    ],
+  };
+  const NET_WORTH = {
+    assets: 14_367, liabilities: 42_396, net: -28_029,
+    history: [
+      { m:'2025-11', val:-49_200 }, { m:'2025-12', val:-46_800 }, { m:'2026-01', val:-44_000 },
+      { m:'2026-02', val:-41_200 }, { m:'2026-03', val:-38_000 }, { m:'2026-04', val:-33_400 },
+      { m:'2026-05', val:-28_029 },
+    ],
+  };
+  function fmt(n, ccy, opts={}) {
+    const { compact=false, sign=false, decimals } = opts;
+    const d = decimals !== undefined ? decimals : (ccy==='VND' ? 0 : 2);
+    let abs = Math.abs(n), unit='';
+    if (compact) {
+      if (ccy==='VND') {
+        if (abs>=1_000_000_000){abs/=1_000_000_000;unit='B';}
+        else if (abs>=1_000_000){abs/=1_000_000;unit='M';}
+        else if (abs>=1_000){abs/=1_000;unit='K';}
+      } else {
+        if (abs>=1_000_000){abs/=1_000_000;unit='M';}
+        else if (abs>=10_000){abs/=1_000;unit='K';}
+      }
+    }
+    const formatted = abs.toLocaleString('en-US',{minimumFractionDigits:unit?(abs<10?2:1):d,maximumFractionDigits:unit?(abs<10?2:1):d});
+    const sym = ccy==='EUR'?'€':ccy==='USD'?'$':ccy==='VND'?'₫':'';
+    const num = (n<0?'-':sign?'+':'')+formatted+unit;
+    return ccy==='VND'?`${num}${sym}`:`${sym}${num}`;
+  }
+  function toEUR(a,ccy){if(ccy==='EUR')return a;if(ccy==='USD')return a/FX.EURUSD;if(ccy==='VND')return a/FX.EURVND;return a;}
+  function toUSD(a,ccy){if(ccy==='USD')return a;if(ccy==='EUR')return a*FX.EURUSD;if(ccy==='VND')return a/FX.USDVND;return a;}
+  function toVND(a,ccy){if(ccy==='VND')return a;if(ccy==='EUR')return a*FX.EURVND;if(ccy==='USD')return a*FX.USDVND;return a;}
+  function catById(id){return CATEGORIES.find(c=>c.id===id);}
+  return { FX, CATEGORIES, LOAN_TOTAL_VND, LOAN_SCHEDULE, ENTRIES, MONTHLY_INPUTS, HISTORY, ACCOUNTS, GOALS, MACRO, BRIEFING, NET_WORTH, fmt, toEUR, toUSD, toVND, catById };
+})();
+</script>
+
+<script type="text/babel">
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;background:rgba(250,249,247,.78);color:#29261b;-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);border:.5px solid rgba(255,255,255,.6);border-radius:14px;box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;overflow-x:hidden;min-height:0;scrollbar-width:thin}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+  .twk-field{appearance:none;box-sizing:border-box;width:100%;min-width:0;height:26px;padding:0 8px;border:.5px solid rgba(0,0,0,.1);border-radius:7px;background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
+  select.twk-field{padding-right:22px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");background-repeat:no-repeat;background-position:right 8px center}
+  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2}
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+  .twk-chips{display:flex;gap:6px}
+  .twk-chip{position:relative;appearance:none;flex:1;min-width:0;height:46px;padding:0;border:0;border-radius:6px;overflow:hidden;cursor:default;box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.06);transition:transform .12s,box-shadow .12s}
+  .twk-chip[data-on="1"]{box-shadow:0 0 0 1.5px rgba(0,0,0,.85),0 2px 6px rgba(0,0,0,.15)}
+  .twk-chip svg{position:absolute;top:6px;left:6px;width:13px;height:13px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+`;
+
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+  }, []);
+  return [values, setTweak];
+}
+
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+  const dismiss = () => { setOpen(false); window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); };
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel" style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd"><b>{title}</b><button className="twk-x" onClick={dismiss}>✕</button></div>
+        <div className="twk-body">{children}</div>
+      </div>
+    </>
+  );
+}
+
+function TweakSection({ label }) { return <div className="twk-sect">{label}</div>; }
+function TweakRow({ label, value, children, inline=false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl"><span>{label}</span>{value!=null&&<span className="twk-val">{value}</span>}</div>
+      {children}
+    </div>
+  );
+}
+function TweakSelect({ label, value, options, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <select className="twk-field" value={value} onChange={e=>onChange(e.target.value)}>
+        {options.map(o=>{const v=typeof o==='object'?o.value:o;const l=typeof o==='object'?o.label:o;return <option key={v} value={v}>{l}</option>;})}
+      </select>
+    </TweakRow>
+  );
+}
+function TweakRadio({ label, value, options, onChange }) {
+  const trackRef = React.useRef(null);
+  const opts = options.map(o=>typeof o==='object'?o:{value:o,label:o});
+  const idx = Math.max(0,opts.findIndex(o=>o.value===value));
+  const n = opts.length;
+  const maxLen = opts.reduce((m,o)=>Math.max(m,String(o.label).length),0);
+  const fitsAsSegments = maxLen <= ({2:16,3:10}[n]??0);
+  if (!fitsAsSegments) return <TweakSelect label={label} value={value} options={options} onChange={v=>onChange(opts.find(o=>String(o.value)===v)?.value??v)} />;
+  return (
+    <TweakRow label={label}>
+      <div ref={trackRef} role="radiogroup" className="twk-seg"
+        onPointerDown={e=>{
+          const r=trackRef.current.getBoundingClientRect();
+          const i=Math.floor(((e.clientX-r.left-2)/(r.width-4))*n);
+          const v=opts[Math.max(0,Math.min(n-1,i))].value;
+          onChange(v);
+        }}>
+        <div className="twk-seg-thumb" style={{left:`calc(2px + ${idx} * (100% - 4px) / ${n})`,width:`calc((100% - 4px) / ${n})`}}/>
+        {opts.map(o=><button key={o.value} type="button" role="radio" aria-checked={o.value===value}>{o.label}</button>)}
+      </div>
+    </TweakRow>
+  );
+}
+function TweakColor({ label, value, options, onChange }) {
+  if (!options?.length) return (
+    <div className="twk-row twk-row-h"><div className="twk-lbl"><span>{label}</span></div>
+      <input type="color" style={{width:56,height:22,border:'.5px solid rgba(0,0,0,.1)',borderRadius:6,padding:0,cursor:'default',background:'transparent'}} value={value} onChange={e=>onChange(e.target.value)}/>
+    </div>
+  );
+  const cur = String(JSON.stringify(value)).toLowerCase();
+  return (
+    <TweakRow label={label}>
+      <div className="twk-chips" role="radiogroup">
+        {options.map((o,i)=>{
+          const colors=Array.isArray(o)?o:[o];
+          const [hero,...rest]=colors;
+          const on=String(JSON.stringify(o)).toLowerCase()===cur;
+          return (
+            <button key={i} type="button" className="twk-chip" data-on={on?'1':'0'}
+              style={{background:hero}} onClick={()=>onChange(o)}>
+              {on&&<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7.2 5.8 10 11 4.2" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" stroke={hero<'#888888'?'#fff':'rgba(0,0,0,.78)'}/></svg>}
+            </button>
+          );
+        })}
+      </div>
+    </TweakRow>
+  );
+}
+
+Object.assign(window, { useTweaks, TweaksPanel, TweakSection, TweakRow, TweakSelect, TweakRadio, TweakColor });
+</script>
+
+<script type="text/babel">
+/* ===== OVERVIEW SCREEN ===== */
+(() => {
+const { useMemo } = React;
+const D = window.MERIDIAN_DATA;
+
+function CashflowChart({ data }) {
+  const W=760,H=200,padL=52,padR=16,padT=16,padB=30;
+  const iW=W-padL-padR,iH=H-padT-padB;
+  const maxVal=Math.max(...data.map(d=>Math.max(d.income_eur,d.expense)))*1.12;
+  const n=data.length,xStep=iW/(n-1);
+  const fy=v=>padT+iH-(v/maxVal)*iH,fx=i=>padL+i*xStep;
+  const incPath=data.map((d,i)=>`${i===0?'M':'L'} ${fx(i)} ${fy(d.income_eur)}`).join(' ');
+  const expPath=data.map((d,i)=>`${i===0?'M':'L'} ${fx(i)} ${fy(d.expense)}`).join(' ');
+  const yTicks=[0,maxVal*.25,maxVal*.5,maxVal*.75,maxVal];
+  return (
+    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
+      {yTicks.map((t,i)=>(
+        <g key={i}>
+          <line x1={padL} y1={fy(t)} x2={W-padR} y2={fy(t)} stroke="var(--rule)" strokeDasharray="2 4"/>
+          <text x={padL-6} y={fy(t)+4} fontSize="10" fill="var(--ink-4)" textAnchor="end" fontFamily="var(--sans)">€{t>=1000?(t/1000).toFixed(1)+'k':t.toFixed(0)}</text>
+        </g>
+      ))}
+      <path d={expPath} stroke="var(--down)" strokeWidth="1.75" fill="none"/>
+      <path d={incPath} stroke="var(--up)" strokeWidth="1.75" fill="none"/>
+      {data.map((d,i)=>(
+        <g key={i}>
+          {d.income_eur>0&&<circle cx={fx(i)} cy={fy(d.income_eur)} r="3" fill="var(--up)"/>}
+          <circle cx={fx(i)} cy={fy(d.expense)} r="3" fill="var(--down)"/>
+          <text x={fx(i)} y={H-8} fontSize="10" fill="var(--ink-4)" textAnchor="middle" fontFamily="var(--sans)">
+            {new Date(d.m+'-01').toLocaleDateString('en-GB',{month:'short'})}
+          </text>
+        </g>
+      ))}
+      <text x={fx(n-1)} y={fy(0)-6} fontSize="9" fill="var(--ink-3)" textAnchor="end" fontFamily="var(--sans)" fontStyle="italic">pending</text>
+    </svg>
+  );
+}
+
+function DebtArc() {
+  const remitted=D.LOAN_SCHEDULE.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
+  const accrued=D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+  const pctR=remitted/D.LOAN_TOTAL_VND,pctA=(remitted+accrued)/D.LOAN_TOTAL_VND;
+  const r=60,c=2*Math.PI*r;
+  return (
+    <div style={{display:'flex',gap:18,alignItems:'center'}}>
+      <svg width="148" height="148" viewBox="-74 -74 148 148">
+        <circle r={r} fill="none" stroke="var(--rule-2)" strokeWidth="7"/>
+        <circle r={r} fill="none" stroke="var(--accent)" strokeWidth="7" opacity="0.35" strokeDasharray={`${c*pctA} ${c}`} transform="rotate(-90)"/>
+        <circle r={r} fill="none" stroke="var(--accent)" strokeWidth="7" strokeDasharray={`${c*pctR} ${c}`} transform="rotate(-90)"/>
+        <text textAnchor="middle" dy="-4" fontFamily="var(--serif)" fontSize="24" fill="var(--ink)">{(pctA*100).toFixed(0)}%</text>
+        <text textAnchor="middle" dy="16" fontFamily="var(--sans)" fontSize="9" fill="var(--ink-3)">covered</text>
+      </svg>
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        <div>
+          <div className="eyebrow" style={{display:'flex',alignItems:'center',gap:5}}><span style={{color:'var(--accent)'}}>●</span> Sent to mom</div>
+          <div className="serif" style={{fontSize:17,color:'var(--ink)'}}>{D.fmt(remitted,'VND',{compact:true})}</div>
+        </div>
+        <div>
+          <div className="eyebrow" style={{display:'flex',alignItems:'center',gap:5}}><span style={{color:'var(--accent)',opacity:.45}}>●</span> Set aside</div>
+          <div className="serif" style={{fontSize:17,color:'var(--ink)'}}>{D.fmt(accrued,'VND',{compact:true})}</div>
+          <div className="ink3" style={{fontSize:11}}>in BNP + Revolut</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CategoryBars() {
+  const sums={};
+  D.ENTRIES.filter(e=>e.date.startsWith('2026-05')).forEach(e=>{sums[e.cat]=(sums[e.cat]||0)+D.toEUR(e.amount,e.ccy);});
+  const total=Object.values(sums).reduce((a,b)=>a+b,0);
+  const cats=[{id:'an_uong',color:'#6FB983'},{id:'must_have',color:'#5891D9'},{id:'optional',color:'#C284E8'},{id:'khac',color:'#E8A33D'}];
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+      {cats.map(({id,color})=>{
+        const cat=D.catById(id),v=sums[id]||0,pct=total?(v/total)*100:0;
+        return (
+          <div key={id} style={{display:'flex',flexDirection:'column',gap:5}}>
+            <div className="row-between">
+              <div className="cat-chip"><span className="cat-dot" style={{background:color}}></span>{cat.en}</div>
+              <div style={{fontSize:12}}><span style={{color:'var(--ink)'}}>€{v.toFixed(0)}</span><span className="ink3" style={{marginLeft:8}}>{pct.toFixed(0)}%</span></div>
+            </div>
+            <div className="bar thin"><div className="bar-fill" style={{width:`${pct}%`,background:color}}></div></div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function RecentActivity() {
+  const recent=[...D.ENTRIES].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+  return (
+    <table className="ledger">
+      <thead><tr><th style={{width:90}}>Date</th><th>Item</th><th>Category</th><th className="r">Amount</th></tr></thead>
+      <tbody>
+        {recent.map(e=>{const cat=D.catById(e.cat);return(
+          <tr key={e.id}>
+            <td className="ink3">{e.date.slice(5)}</td>
+            <td style={{color:'var(--ink)'}}>{e.label}</td>
+            <td><span className="cat-chip"><span className={`cat-dot ${cat.cls}`}></span>{cat.en}</span></td>
+            <td className="r mono">{D.fmt(e.amount,e.ccy)}</td>
+          </tr>
+        );})}
+      </tbody>
+    </table>
+  );
+}
+
+function AccountsList() {
+  const total=D.ACCOUNTS.reduce((s,a)=>s+D.toEUR(a.balance,a.ccy),0);
+  return (
+    <div style={{display:'flex',flexDirection:'column'}}>
+      {D.ACCOUNTS.map(a=>(
+        <div key={a.id} style={{padding:'14px 16px',borderBottom:'1px solid var(--rule)'}}>
+          <div className="row-between">
+            <div><div style={{fontSize:13,fontWeight:500,color:'var(--ink)'}}>{a.name}</div><div className="ink4" style={{fontSize:11}}>{a.bank} · {a.ccy}</div></div>
+            <div style={{textAlign:'right'}}>
+              <div className="serif" style={{fontSize:19,color:'var(--ink)'}}>{D.fmt(a.balance,a.ccy)}</div>
+              {a.ccy!=='EUR'&&<div className="ink3" style={{fontSize:11}}>≈ {D.fmt(D.toEUR(a.balance,a.ccy),'EUR',{decimals:0})}</div>}
+            </div>
+          </div>
+          {a.note&&<div className="serif ink3" style={{fontSize:12,fontStyle:'italic',marginTop:6,lineHeight:1.4}}>{a.note}</div>}
+        </div>
+      ))}
+      <div style={{padding:'14px 16px',background:'var(--panel-2)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span className="eyebrow">Total (EUR equiv.)</span>
+        <span className="serif" style={{fontSize:22}}>€{total.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
+      </div>
+    </div>
+  );
+}
+
+function KPI({label,value,serif,sub,delta,deltaDir,note}) {
+  return (
+    <div className="kpi">
+      <div className="lbl">{label}</div>
+      <div className={serif?'val':'val mono'}>{value}</div>
+      <div className="sub">
+        {delta&&<span className={`delta ${deltaDir||''}`}><span className="arr">{deltaDir==='up'?'▲':deltaDir==='down'?'▼':'◆'}</span>{delta}</span>}
+        {sub&&<span>{sub}</span>}
+      </div>
+      {note&&<div style={{fontSize:11,color:'var(--ink-4)',fontStyle:'italic',marginTop:3}}>{note}</div>}
+    </div>
+  );
+}
+
+function NetWorthChart({data}) {
+  const W=900,H=140,padL=60,padR=16,padT=14,padB=24;
+  const iW=W-padL-padR,iH=H-padT-padB;
+  const vals=data.map(d=>d.val);
+  const min=Math.min(...vals),max=Math.max(...vals,0),range=max-min||1;
+  const xStep=iW/(data.length-1);
+  const fy=v=>padT+iH-((v-min)/range)*iH,fx=i=>padL+i*xStep;
+  const zeroY=fy(0),path=data.map((d,i)=>`${i===0?'M':'L'} ${fx(i)} ${fy(d.val)}`).join(' ');
+  const area=path+` L ${fx(data.length-1)} ${padT+iH} L ${padL} ${padT+iH} Z`;
+  return (
+    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
+      {zeroY>padT&&zeroY<padT+iH&&<><line x1={padL} y1={zeroY} x2={W-padR} y2={zeroY} stroke="var(--rule-2)" strokeDasharray="3 3"/><text x={padL-6} y={zeroY+4} fontSize="10" fill="var(--ink-3)" textAnchor="end" fontFamily="var(--sans)">€0</text></>}
+      <text x={padL-6} y={fy(min)+4} fontSize="10" fill="var(--ink-4)" textAnchor="end" fontFamily="var(--sans)">−€{Math.round(Math.abs(min)/1000)}k</text>
+      <path d={area} fill="var(--accent)" opacity="0.10"/>
+      <path d={path} stroke="var(--accent)" strokeWidth="1.75" fill="none"/>
+      {data.map((d,i)=>(
+        <g key={i}>
+          <circle cx={fx(i)} cy={fy(d.val)} r="2.5" fill="var(--accent)"/>
+          <text x={fx(i)} y={H-6} fontSize="10" fill="var(--ink-4)" textAnchor="middle" fontFamily="var(--sans)">{new Date(d.m+'-01').toLocaleDateString('en-GB',{month:'short'})}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function OverviewScreen() {
+  const restingEUR=D.ACCOUNTS.reduce((s,a)=>s+D.toEUR(a.balance,a.ccy),0);
+  const accrued=D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+  const freeCash=restingEUR-D.toEUR(accrued,'VND');
+  const mayExpense=D.HISTORY[D.HISTORY.length-1].expense;
+  const nwDelta=D.NET_WORTH.net-D.NET_WORTH.history[0].val;
+  return (
+    <div className="screen" style={{gridTemplateColumns:'1fr',gridAutoRows:'auto'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:1,background:'var(--rule)'}}>
+        <div style={{background:'var(--panel)'}}><KPI label="Cash · all accounts" serif value={`€${restingEUR.toLocaleString('en-US',{maximumFractionDigits:0})}`} sub="BNP + Revolut combined"/></div>
+        <div style={{background:'var(--panel)'}}><KPI label="Free cash (after mom set-aside)" serif value={`€${freeCash.toLocaleString('en-US',{maximumFractionDigits:0})}`} delta={`${D.fmt(accrued,'VND',{compact:true})} earmarked for mom`} deltaDir="flat"/></div>
+        <div style={{background:'var(--panel)'}}><KPI label="May expenses · through 25th" serif value={`€${mayExpense.toFixed(0)}`} sub="salary not yet received" note="Nha Trang + B2 course are one-offs"/></div>
+        <div style={{background:'var(--panel)'}}><KPI label="Monthly salary (USD)" serif value="$3,850" sub="Dec 2025 was $3,675 · May pending" note="≈ €3,540 at current rate"/></div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr 1.3fr',gap:1,background:'var(--rule)'}}>
+        <div className="panel" style={{borderTop:0,borderLeft:0,borderBottom:0}}>
+          <div className="panel-h"><span className="title">Cashflow · Nov '25 – May '26</span><span className="badge up">● Income (EUR equiv.)</span><span className="badge down">● Expense</span></div>
+          <div className="panel-b"><CashflowChart data={D.HISTORY}/></div>
+        </div>
+        <div className="panel" style={{borderTop:0,borderBottom:0}}>
+          <div className="panel-h"><span className="title">Debt to mom · progress</span><span className="meta">1.5B ₫ total</span></div>
+          <div className="panel-b" style={{display:'flex',justifyContent:'center',padding:18}}><DebtArc/></div>
+        </div>
+        <div className="panel" style={{borderTop:0,borderBottom:0,borderRight:0}}>
+          <div className="panel-h"><span className="title">Today's briefing</span><span className="meta">{D.BRIEFING.date}</span></div>
+          <div className="panel-b" style={{display:'flex',flexDirection:'column',gap:12}}>
+            <div className="serif" style={{fontSize:18,lineHeight:1.3,color:'var(--ink)',fontStyle:'italic'}}>{D.BRIEFING.title}</div>
+            <div className="serif" style={{fontSize:13,lineHeight:1.65,color:'var(--ink-2)'}}>{D.BRIEFING.body[0]}</div>
+            <div style={{marginTop:'auto'}}><button className="btn">Open advisor →</button></div>
+          </div>
+        </div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1.1fr 1.6fr',gap:1,background:'var(--rule)'}}>
+        <div className="panel" style={{borderBottom:0,borderLeft:0}}>
+          <div className="panel-h"><span className="title">May spending · by category</span><span className="meta">€{mayExpense.toFixed(0)}</span></div>
+          <div className="panel-b"><CategoryBars/></div>
+        </div>
+        <div className="panel" style={{borderBottom:0}}>
+          <div className="panel-h"><span className="title">Accounts</span></div>
+          <div className="panel-b flush"><AccountsList/></div>
+        </div>
+        <div className="panel" style={{borderBottom:0,borderRight:0}}>
+          <div className="panel-h"><span className="title">Recent activity</span><div className="actions"><button className="btn">+ Log</button></div></div>
+          <div className="panel-b flush"><RecentActivity/></div>
+        </div>
+      </div>
+      <div className="panel" style={{border:0}}>
+        <div className="panel-h">
+          <span className="title">Net worth trajectory · Nov '25 — May '26</span>
+          <span className="badge up">+€{Math.round(nwDelta/1000)}k improvement since Nov '25</span>
+          <span className="meta">Still negative · turns positive after debt-free (Jun '27)</span>
+        </div>
+        <div className="panel-b" style={{display:'flex',gap:24,alignItems:'center'}}>
+          <div style={{flex:1}}><NetWorthChart data={D.NET_WORTH.history}/></div>
+          <div style={{width:240,display:'flex',flexDirection:'column',gap:12}}>
+            <div><div className="eyebrow">Assets</div><div className="serif" style={{fontSize:22,color:'var(--up)'}}>{D.fmt(D.NET_WORTH.assets,'EUR',{decimals:0})}</div></div>
+            <div><div className="eyebrow">Liabilities (debt remaining)</div><div className="serif" style={{fontSize:22,color:'var(--down)'}}>{D.fmt(D.NET_WORTH.liabilities,'EUR',{decimals:0})}</div></div>
+            <div style={{borderTop:'1px solid var(--rule)',paddingTop:12}}>
+              <div className="eyebrow">Net</div>
+              <div className="serif" style={{fontSize:26,color:'var(--ink)'}}>{D.fmt(D.NET_WORTH.net,'EUR',{decimals:0,sign:true})}</div>
+              <div className="ink3" style={{fontSize:11,marginTop:4}}>Improving ~€{Math.round(Math.abs(nwDelta)/7)}k/month</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.OverviewScreen = OverviewScreen;
+})();
+</script>
+
+<script type="text/babel">
+/* ===== LEDGER SCREEN ===== */
+(() => {
+const { useMemo, useState } = React;
+const D = window.MERIDIAN_DATA;
+
+const MONTHS = [
+  { value:'2026-05', label:'May 2026' },
+  { value:'2026-04', label:'Apr 2026' },
+  { value:'2026-03', label:'Mar 2026' },
+  { value:'2026-02', label:'Feb 2026' },
+  { value:'2026-01', label:'Jan 2026' },
+  { value:'2025-12', label:'Dec 2025' },
+  { value:'2025-11', label:'Nov 2025' },
+];
+
+function MonthlyInputs({ selectedMonth }) {
+  const input = D.MONTHLY_INPUTS.find(m=>m.month===selectedMonth)||null;
+  const history = D.MONTHLY_INPUTS.slice().reverse();
+  return (
+    <div>
+      <div style={{padding:'18px 20px',borderBottom:'1px solid var(--rule)'}}>
+        <div className="eyebrow" style={{marginBottom:14}}>{MONTHS.find(m=>m.value===selectedMonth)?.label||selectedMonth}</div>
+        {input ? (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
+            <div>
+              <div className="row-between" style={{marginBottom:4}}>
+                <span style={{fontSize:12,color:'var(--ink-2)'}}>Salary received</span>
+                {input.income_usd>0?<span className="badge up">Received</span>:<span className="badge warn">Pending</span>}
+              </div>
+              <div className="serif" style={{fontSize:26,color:input.income_usd>0?'var(--ink)':'var(--ink-4)',lineHeight:1.1}}>
+                {input.income_usd>0?`$${input.income_usd.toLocaleString()}`:'Not received'}
+              </div>
+              {input.income_usd>0&&<div className="ink3" style={{fontSize:11,marginTop:3}}>≈ €{input.income_eur.toLocaleString()} at month rate</div>}
+              {input.income_usd===0&&<div className="ink3" style={{fontSize:11,marginTop:3}}>Typical: $3,850 USD · expected end of month</div>}
+            </div>
+            <div>
+              <div className="row-between" style={{marginBottom:4}}>
+                <span style={{fontSize:12,color:'var(--ink-2)'}}>Set aside for mom</span>
+                {input.mom_set_aside>0?<span className="badge" style={{color:'var(--accent)',borderColor:'color-mix(in oklab,var(--accent) 40%,var(--rule))'}}>Allocated</span>:<span className="badge warn">Pending</span>}
+              </div>
+              <div className="serif" style={{fontSize:26,color:input.mom_set_aside>0?'var(--accent)':'var(--ink-4)',lineHeight:1.1}}>
+                {input.mom_set_aside>0?`${(input.mom_set_aside/1_000_000).toFixed(0)}M ₫`:'Not yet'}
+              </div>
+              {input.mom_set_aside>0&&<div className="ink3" style={{fontSize:11,marginTop:3}}>≈ €{D.toEUR(input.mom_set_aside,'VND').toFixed(0)} at current rate</div>}
+              {input.mom_set_aside===0&&<div className="ink3" style={{fontSize:11,marginTop:3}}>Plan: 70M ₫ (≈ €{D.toEUR(70_000_000,'VND').toFixed(0)})</div>}
+            </div>
+          </div>
+        ) : (
+          <div className="serif ink3" style={{fontStyle:'italic',fontSize:14}}>No data recorded for this month yet.</div>
+        )}
+      </div>
+      <div style={{padding:'14px 20px'}}>
+        <div className="eyebrow" style={{marginBottom:10}}>History</div>
+        <table style={{width:'100%',borderCollapse:'collapse'}}>
+          <thead><tr>
+            <th style={{textAlign:'left',fontSize:10,color:'var(--ink-4)',fontWeight:500,padding:'4px 0',letterSpacing:'0.03em'}}>MONTH</th>
+            <th style={{textAlign:'right',fontSize:10,color:'var(--ink-4)',fontWeight:500,padding:'4px 0',letterSpacing:'0.03em'}}>SALARY (USD)</th>
+            <th style={{textAlign:'right',fontSize:10,color:'var(--ink-4)',fontWeight:500,padding:'4px 0',letterSpacing:'0.03em'}}>TO MOM</th>
+          </tr></thead>
+          <tbody>
+            {history.map(m=>(
+              <tr key={m.month} style={{background:m.month===selectedMonth?'var(--panel-hi)':'transparent'}}>
+                <td style={{padding:'7px 0',fontSize:12,color:'var(--ink-2)'}}>{new Date(m.month+'-01').toLocaleDateString('en-GB',{month:'short',year:'numeric'})}</td>
+                <td style={{padding:'7px 0',fontSize:12,textAlign:'right',color:m.income_usd>0?'var(--ink)':'var(--ink-4)',fontFamily:'var(--mono)'}}>{m.income_usd>0?`$${m.income_usd.toLocaleString()}`:'—'}</td>
+                <td style={{padding:'7px 0',fontSize:12,textAlign:'right',color:m.mom_set_aside>0?'var(--accent)':'var(--ink-4)',fontFamily:'var(--mono)'}}>{m.mom_set_aside>0?`${(m.mom_set_aside/1_000_000).toFixed(0)}M ₫`:'—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{padding:'12px 20px',background:'var(--panel-2)',borderTop:'1px solid var(--rule)',display:'flex',gap:8}}>
+        <button className="btn" style={{flex:1}}>+ Log salary</button>
+        <button className="btn primary" style={{flex:1}}>+ Set aside for mom</button>
+      </div>
+    </div>
+  );
+}
+
+function QuickAddExpense({ onAdd, selectedMonth }) {
+  const [cat,setCat]=useState('an_uong'),[label,setLabel]=useState(''),[amount,setAmount]=useState(''),[ccy,setCcy]=useState('EUR'),[date,setDate]=useState(selectedMonth+'-27');
+  function submit(e){e.preventDefault();if(!label.trim()||!amount)return;onAdd({id:'n'+Date.now(),date,cat,label:label.trim(),amount:parseFloat(amount),ccy});setLabel('');setAmount('');}
+  return (
+    <form onSubmit={submit} style={{display:'flex',gap:10,alignItems:'flex-end',padding:'12px 16px',borderBottom:'1px solid var(--rule)',background:'var(--panel-2)'}}>
+      <div style={{display:'flex',flexDirection:'column'}}>
+        <label className="field-lbl">Date</label>
+        <input className="field" type="date" value={date} onChange={e=>setDate(e.target.value)} style={{width:140}}/>
+      </div>
+      <div style={{display:'flex',flexDirection:'column'}}>
+        <label className="field-lbl">Category</label>
+        <select className="field" value={cat} onChange={e=>setCat(e.target.value)} style={{width:160}}>
+          {D.CATEGORIES.filter(c=>c.id!=='income'&&c.id!=='me').map(c=><option key={c.id} value={c.id}>{c.en}</option>)}
+        </select>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',flex:1}}>
+        <label className="field-lbl">Item description</label>
+        <input className="field" placeholder="e.g. sieu thi, MRT, cafe" value={label} onChange={e=>setLabel(e.target.value)}/>
+      </div>
+      <div style={{display:'flex',flexDirection:'column'}}>
+        <label className="field-lbl">Amount</label>
+        <input className="field" placeholder="0.00" type="number" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} style={{width:100,textAlign:'right'}}/>
+      </div>
+      <div style={{display:'flex',flexDirection:'column'}}>
+        <label className="field-lbl">Currency</label>
+        <select className="field" value={ccy} onChange={e=>setCcy(e.target.value)} style={{width:80}}>
+          <option>EUR</option><option>USD</option><option>VND</option>
+        </select>
+      </div>
+      <button type="submit" className="btn primary" style={{height:32,whiteSpace:'nowrap'}}>+ Log</button>
+    </form>
+  );
+}
+
+function FilterChips({ activeCats, toggleCat, displayCcy, setDisplayCcy }) {
+  const expCats=D.CATEGORIES.filter(c=>c.id!=='income'&&c.id!=='me');
+  return (
+    <div style={{display:'flex',gap:8,padding:'10px 16px',borderBottom:'1px solid var(--rule)',alignItems:'center',flexWrap:'wrap'}}>
+      <span className="eyebrow" style={{marginRight:2}}>Filter</span>
+      {expCats.map(c=>{const on=activeCats.includes(c.id);return(
+        <button key={c.id} onClick={()=>toggleCat(c.id)} style={{padding:'5px 10px',fontFamily:'var(--sans)',fontSize:11,fontWeight:500,border:'1px solid '+(on?'var(--accent)':'var(--rule-2)'),background:on?'color-mix(in oklab,var(--accent) 14%,transparent)':'transparent',color:on?'var(--accent)':'var(--ink-3)',borderRadius:3,display:'inline-flex',alignItems:'center',gap:5,cursor:'pointer'}}>
+          <span className={`cat-dot ${c.cls}`}></span>{c.en}
+        </button>
+      );})}
+      <div style={{marginLeft:'auto',display:'flex',gap:6,alignItems:'center'}}>
+        <span className="eyebrow">Show as</span>
+        {['EUR','USD','VND'].map(c=>(
+          <button key={c} onClick={()=>setDisplayCcy(c)} className="btn" style={{padding:'4px 10px',color:displayCcy===c?'var(--accent)':'var(--ink-3)',borderColor:displayCcy===c?'var(--accent)':'var(--rule-2)'}}>{c}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ExpenseTable({ entries, displayCcy }) {
+  if (entries.length===0) return (
+    <div style={{padding:'48px 24px',textAlign:'center'}}>
+      <div className="serif ink3" style={{fontSize:18,fontStyle:'italic'}}>No expenses logged for this month.</div>
+      <div className="ink4" style={{fontSize:12,marginTop:8}}>Use the form above to start logging.</div>
+    </div>
+  );
+  const byDay={};
+  entries.forEach(e=>{if(!byDay[e.date])byDay[e.date]=[];byDay[e.date].push(e);});
+  const days=Object.keys(byDay).sort().reverse();
+  function display(amount,ccy){
+    if(displayCcy==='EUR')return D.fmt(D.toEUR(amount,ccy),'EUR');
+    if(displayCcy==='USD')return D.fmt(D.toUSD(amount,ccy),'USD');
+    return D.fmt(D.toVND(amount,ccy),'VND',{compact:true});
+  }
+  return (
+    <table className="ledger">
+      <thead><tr><th style={{width:90}}>Date</th><th>Item</th><th style={{width:160}}>Category</th><th className="r" style={{width:110}}>Original</th><th className="r" style={{width:110}}>{displayCcy}</th></tr></thead>
+      <tbody>
+        {days.map(day=>{
+          const items=byDay[day];
+          const dayEUR=items.reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
+          return (
+            <React.Fragment key={day}>
+              <tr className="group-h">
+                <td colSpan="3">{new Date(day).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'})}</td>
+                <td className="r ink3">{items.length} items</td>
+                <td className="r" style={{color:'var(--ink-2)'}}>€{dayEUR.toFixed(2)}</td>
+              </tr>
+              {items.map(e=>{const cat=D.catById(e.cat);return(
+                <tr key={e.id}>
+                  <td className="ink3 mono">{e.date.slice(8)}</td>
+                  <td style={{color:'var(--ink)'}}>{e.label}</td>
+                  <td><span className="cat-chip"><span className={`cat-dot ${cat.cls}`}></span>{cat.en}</span></td>
+                  <td className="r mono">{D.fmt(e.amount,e.ccy,{compact:e.ccy==='VND'})}</td>
+                  <td className="r mono ink2">{display(e.amount,e.ccy)}</td>
+                </tr>
+              );})}
+            </React.Fragment>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function SpendingCheck({ selectedMonth }) {
+  const hist=D.HISTORY.find(h=>h.m===selectedMonth);
+  const past=D.HISTORY.filter(h=>h.income_eur>0);
+  const avg={expense:past.reduce((s,h)=>s+h.expense,0)/past.length,an_uong:past.reduce((s,h)=>s+h.an_uong,0)/past.length,must_have:past.reduce((s,h)=>s+h.must_have,0)/past.length,optional:past.reduce((s,h)=>s+h.optional,0)/past.length,khac:past.reduce((s,h)=>s+h.khac,0)/past.length};
+  const rows=[{lbl:'Food & drink',k:'an_uong'},{lbl:'Essentials',k:'must_have'},{lbl:'Discretionary',k:'optional'},{lbl:'Other',k:'khac'}];
+  if(!hist)return <div style={{padding:24}}><div className="serif ink3" style={{fontStyle:'italic',fontSize:14}}>No spending data for this month.</div></div>;
+  return (
+    <div>
+      <div style={{padding:'16px 20px',borderBottom:'1px solid var(--rule)'}}>
+        <div className="eyebrow" style={{marginBottom:6}}>vs. {past.length}-month average</div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
+          <div className="serif" style={{fontSize:30,color:'var(--ink)'}}>€{hist.expense.toFixed(0)}</div>
+          <div className="ink3" style={{fontSize:12}}>avg €{avg.expense.toFixed(0)}/mo</div>
+        </div>
+        {selectedMonth==='2026-05'&&<div className="ink3 serif" style={{fontSize:12,fontStyle:'italic',marginTop:4}}>Through 25 May only — salary pending</div>}
+      </div>
+      <div style={{padding:'14px 20px',display:'flex',flexDirection:'column',gap:14}}>
+        {rows.map(r=>{const actual=hist[r.k],pct=avg[r.k]>0?(actual/avg[r.k])*100:0,over=pct>100;return(
+          <div key={r.k}>
+            <div className="row-between" style={{marginBottom:5}}>
+              <span style={{fontSize:12,color:'var(--ink-2)'}}>{r.lbl}</span>
+              <span style={{fontSize:12}}><span style={{color:over?'var(--down)':'var(--ink)'}}>€{actual.toFixed(0)}</span><span className="ink4"> / avg €{avg[r.k].toFixed(0)}</span></span>
+            </div>
+            <div className="bar"><div className="bar-fill" style={{width:`${Math.min(pct,100)}%`,background:over?'var(--down)':'var(--accent)'}}></div></div>
+            <div className="ink3" style={{fontSize:10,marginTop:3}}>{pct.toFixed(0)}% of average</div>
+          </div>
+        );})}
+      </div>
+    </div>
+  );
+}
+
+function LedgerScreen() {
+  const [selectedMonth,setSelectedMonth]=useState('2026-05');
+  const [allEntries,setAllEntries]=useState(D.ENTRIES);
+  const expCats=D.CATEGORIES.filter(c=>c.id!=='income'&&c.id!=='me');
+  const [activeCats,setActiveCats]=useState(expCats.map(c=>c.id));
+  const [displayCcy,setDisplayCcy]=useState('EUR');
+  const [query,setQuery]=useState('');
+  function toggleCat(id){setActiveCats(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id]);}
+  function onAdd(entry){setAllEntries(s=>[entry,...s]);}
+  const filtered=useMemo(()=>allEntries.filter(e=>e.date.startsWith(selectedMonth)&&activeCats.includes(e.cat)&&(!query||e.label.toLowerCase().includes(query.toLowerCase()))),[allEntries,selectedMonth,activeCats,query]);
+  const totalEUR=filtered.reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
+  const monthLabel=MONTHS.find(m=>m.value===selectedMonth)?.label||selectedMonth;
+  return (
+    <div className="screen" style={{gridTemplateColumns:'360px 1fr',gridTemplateRows:'auto 1fr',background:'var(--rule)',height:'100%'}}>
+      <div className="panel" style={{borderTop:0,borderLeft:0,borderBottom:0,overflow:'auto'}}>
+        <div className="panel-h">
+          <span className="title">Monthly inputs</span>
+          <select className="field" style={{height:26,fontSize:11,marginLeft:'auto'}} value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)}>
+            {MONTHS.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
+        </div>
+        <MonthlyInputs selectedMonth={selectedMonth}/>
+      </div>
+      <div className="panel" style={{borderTop:0,borderRight:0,borderBottom:0,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div className="panel-h">
+          <span className="title">Expenses · {monthLabel}</span>
+          <span className="badge info">{filtered.length} entries</span>
+          <span className="badge down">€{totalEUR.toFixed(0)}</span>
+          <div className="actions">
+            <input className="field" placeholder="Search…" value={query} onChange={e=>setQuery(e.target.value)} style={{height:28,width:150,fontSize:12}}/>
+            <button className="btn">Export</button>
+          </div>
+        </div>
+        <QuickAddExpense onAdd={onAdd} selectedMonth={selectedMonth}/>
+        <FilterChips activeCats={activeCats} toggleCat={toggleCat} displayCcy={displayCcy} setDisplayCcy={setDisplayCcy}/>
+        <div style={{overflow:'auto',flex:1}}><ExpenseTable entries={filtered} displayCcy={displayCcy}/></div>
+      </div>
+      <div className="panel" style={{borderLeft:0,borderBottom:0,overflow:'auto'}}>
+        <div className="panel-h"><span className="title">Spending check · {monthLabel}</span></div>
+        <SpendingCheck selectedMonth={selectedMonth}/>
+      </div>
+    </div>
+  );
+}
+
+window.LedgerScreen = LedgerScreen;
+})();
+</script>
+
+<script type="text/babel">
+/* ===== DEBT SCREEN ===== */
+(() => {
+const { useState } = React;
+const D = window.MERIDIAN_DATA;
+
+const STATUS_COLOR = { remitted:'var(--accent)', accrued:'color-mix(in oklab,var(--accent) 45%,var(--bg-1))', scheduled:'var(--rule-2)', projected:'var(--rule)' };
+const STATUS_LABEL = { remitted:'Sent to mom', accrued:'Set aside', scheduled:'Scheduled', projected:'Projected' };
+
+function PaymentTimeline() {
+  const maxA=Math.max(...D.LOAN_SCHEDULE.map(s=>s.amount));
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+      <div style={{display:'flex',alignItems:'flex-end',gap:3,height:100}}>
+        {D.LOAN_SCHEDULE.map((s,i)=>{
+          const h=(s.amount/maxA)*100;
+          const isNow=i===D.LOAN_SCHEDULE.filter(x=>x.status==='remitted'||x.status==='accrued').length-1;
+          return (
+            <div key={s.month} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',position:'relative',height:'100%'}}>
+              {isNow&&<div style={{position:'absolute',top:-20,left:'50%',transform:'translateX(-50%)',fontFamily:'var(--sans)',fontSize:9,color:'var(--accent)',whiteSpace:'nowrap',fontWeight:500}}>▼ now</div>}
+              <div style={{width:'100%',height:`${h}px`,background:STATUS_COLOR[s.status],borderRadius:'2px 2px 0 0',opacity:s.status==='projected'?.5:1,border:(s.status==='scheduled'||s.status==='projected')?'1px solid var(--rule-2)':'none'}}/>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{display:'flex',gap:3}}>
+        {D.LOAN_SCHEDULE.map(s=>(
+          <div key={s.month} style={{flex:1,textAlign:'center',fontSize:8.5,color:'var(--ink-4)',fontFamily:'var(--sans)',lineHeight:1.2}}>
+            {new Date(s.month+'-01').toLocaleDateString('en-GB',{month:'short'})}<br/><span style={{fontSize:8}}>{s.month.slice(2,4)}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{display:'flex',gap:18,paddingTop:4}}>
+        {Object.entries(STATUS_LABEL).map(([k,v])=>(
+          <div key={k} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--ink-3)',fontFamily:'var(--sans)'}}>
+            <div style={{width:10,height:10,background:STATUS_COLOR[k],borderRadius:2,opacity:k==='projected'?.5:1,border:k==='scheduled'?'1px solid var(--rule-2)':'none'}}/>{v}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RetirementCurve() {
+  const W=440,H=200,padL=46,padR=16,padT=16,padB=28;
+  const iW=W-padL-padR,iH=H-padT-padB,total=D.LOAN_TOTAL_VND,xStep=iW/D.LOAN_SCHEDULE.length;
+  let cum=0;
+  const points=D.LOAN_SCHEDULE.map((s,i)=>{cum+=s.amount;return{x:padL+(i+1)*xStep,y:padT+iH-(cum/total)*iH,status:s.status};});
+  const fullPath=`M ${padL} ${padT+iH} `+points.map(p=>`L ${p.x} ${p.y}`).join(' ');
+  const area=fullPath+` L ${points[points.length-1].x} ${padT+iH} Z`;
+  const splitIdx=D.LOAN_SCHEDULE.reduce((acc,s,i)=>(s.status==='remitted'||s.status==='accrued')?i:acc,-1);
+  const splitX=splitIdx>=0?points[splitIdx].x:padL;
+  const solidPath=`M ${padL} ${padT+iH} `+points.slice(0,splitIdx+1).map(p=>`L ${p.x} ${p.y}`).join(' ');
+  const dashPath=`M ${points[splitIdx]?.x||padL} ${points[splitIdx]?.y||padT+iH} `+points.slice(splitIdx+1).map(p=>`L ${p.x} ${p.y}`).join(' ');
+  return (
+    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
+      {[0,.25,.5,.75,1].map(p=>(
+        <g key={p}>
+          <line x1={padL} y1={padT+iH*(1-p)} x2={W-padR} y2={padT+iH*(1-p)} stroke="var(--rule)" strokeDasharray="2 4"/>
+          <text x={padL-6} y={padT+iH*(1-p)+4} fontSize="10" fill="var(--ink-4)" textAnchor="end" fontFamily="var(--sans)">{(p*100).toFixed(0)}%</text>
+        </g>
+      ))}
+      <path d={area} fill="var(--accent)" opacity="0.10"/>
+      {splitIdx>=0&&<path d={solidPath} stroke="var(--accent)" strokeWidth="2" fill="none"/>}
+      {splitIdx<D.LOAN_SCHEDULE.length-1&&<path d={dashPath} stroke="var(--accent)" strokeWidth="1.5" fill="none" strokeDasharray="4 3"/>}
+      {splitIdx>=0&&<><line x1={splitX} y1={padT} x2={splitX} y2={padT+iH} stroke="var(--ink-4)" strokeDasharray="2 3"/><text x={splitX+5} y={padT+14} fontSize="9" fill="var(--ink-3)" fontFamily="var(--sans)">Now</text></>}
+      <circle cx={points[points.length-1].x} cy={padT} r="3" fill="var(--up)"/>
+      <text x={points[points.length-1].x-6} y={padT+4} fontSize="9" fill="var(--up)" textAnchor="end" fontFamily="var(--sans)">Jun '27</text>
+    </svg>
+  );
+}
+
+function WhatIf() {
+  const [extra,setExtra]=useState(0);
+  const remitted=D.LOAN_SCHEDULE.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
+  const accrued=D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+  const remaining=D.LOAN_TOTAL_VND-remitted-accrued;
+  const baseMonthly=73_000_000,baseMonths=Math.ceil(remaining/baseMonthly);
+  const newMonthly=baseMonthly+extra*1_000_000,newMonths=Math.ceil(remaining/newMonthly);
+  const saved=baseMonths-newMonths;
+  const today=new Date(2026,4,27);
+  const freeDate=new Date(today.getFullYear(),today.getMonth()+newMonths,1);
+  const dfStr=freeDate.toLocaleDateString('en-GB',{month:'short',year:'2-digit'}).toUpperCase();
+  return (
+    <div style={{padding:18,display:'flex',flexDirection:'column',gap:18}}>
+      <div>
+        <div className="row-between" style={{marginBottom:8}}><span className="eyebrow">Extra payment per month</span><span className="mono" style={{fontSize:14,color:'var(--accent)'}}>+{extra}M ₫</span></div>
+        <input type="range" min={0} max={30} step={5} value={extra} onChange={e=>setExtra(+e.target.value)} style={{width:'100%',accentColor:'var(--accent)'}}/>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'var(--ink-4)',fontFamily:'var(--sans)',marginTop:4}}><span>0</span><span>10M</span><span>20M</span><span>30M ₫</span></div>
+        {extra>0&&<div className="ink3" style={{fontSize:11,marginTop:6}}>≈ +€{D.toEUR(extra*1_000_000,'VND').toFixed(0)}/month from EUR conversion</div>}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:1,background:'var(--rule)',border:'1px solid var(--rule)'}}>
+        <div style={{padding:'12px 14px',background:'var(--panel)'}}>
+          <div className="eyebrow">Debt-free by</div>
+          <div className="serif" style={{fontSize:26,color:'var(--accent)',marginTop:4}}>{dfStr}</div>
+          {saved>0&&<div style={{fontSize:11,color:'var(--up)',marginTop:3}}>↑ {saved} month{saved!==1?'s':''} sooner</div>}
+          {saved===0&&<div className="ink3" style={{fontSize:11,marginTop:3}}>no change from baseline</div>}
+        </div>
+        <div style={{padding:'12px 14px',background:'var(--panel)'}}>
+          <div className="eyebrow">Monthly outlay</div>
+          <div className="serif" style={{fontSize:26,color:'var(--ink)',marginTop:4}}>{(newMonthly/1_000_000).toFixed(0)}M ₫</div>
+          <div className="ink3" style={{fontSize:11,marginTop:3}}>≈ €{D.toEUR(newMonthly,'VND').toFixed(0)}/mo</div>
+        </div>
+      </div>
+      <div className="serif" style={{fontSize:13,lineHeight:1.6,color:'var(--ink-2)',fontStyle:'italic',borderLeft:'2px solid var(--accent)',paddingLeft:12}}>
+        {extra===0&&"On schedule — June 2027. Your free cash after remitting the accruals stays around €7k, which is your safe floor."}
+        {extra>0&&extra<=10&&`Modest acceleration — ${saved} month${saved!==1?'s':''} earlier with minimal pressure on your buffer.`}
+        {extra>10&&extra<=20&&"Meaningful gain — check that wedding savings aren't squeezed too hard. Run this past the advisor."}
+        {extra>20&&"Aggressive. Only worth it in months with bonus income or when EUR/VND is unusually favorable."}
+      </div>
+    </div>
+  );
+}
+
+function ScheduleTable() {
+  let cum=0;
+  return (
+    <table className="ledger">
+      <thead><tr><th>Month</th><th>Status</th><th style={{width:60}}>Account</th><th className="r">Amount (VND)</th><th className="r">Cumulative</th><th className="r">% of total</th><th className="r">Remaining</th></tr></thead>
+      <tbody>
+        {D.LOAN_SCHEDULE.map(s=>{
+          cum+=s.amount;const pct=(cum/D.LOAN_TOTAL_VND)*100,rem=D.LOAN_TOTAL_VND-cum;
+          return(
+            <tr key={s.month}>
+              <td style={{color:'var(--ink)'}}>{s.month}</td>
+              <td>
+                {s.status==='remitted'&&<span className="badge" style={{color:'var(--accent)',borderColor:'color-mix(in oklab,var(--accent) 40%,var(--rule))'}}>Sent</span>}
+                {s.status==='accrued'&&<span className="badge warn">Set aside</span>}
+                {s.status==='scheduled'&&<span className="badge info">Scheduled</span>}
+                {s.status==='projected'&&<span className="badge">Projected</span>}
+              </td>
+              <td style={{fontSize:11,color:'var(--ink-3)'}}>{s.acct||'—'}</td>
+              <td className="r mono" style={{color:s.status==='projected'?'var(--ink-4)':'var(--ink)'}}>{(s.amount/1_000_000).toFixed(0)}M</td>
+              <td className="r mono ink2">{(cum/1_000_000).toFixed(0)}M</td>
+              <td className="r mono" style={{color:s.status!=='projected'?'var(--accent)':'var(--ink-4)'}}>{pct.toFixed(1)}%</td>
+              <td className="r mono ink3">{(rem/1_000_000).toFixed(0)}M</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function DebtStats() {
+  const remitted=D.LOAN_SCHEDULE.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
+  const accrued=D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+  const remaining=D.LOAN_TOTAL_VND-remitted;
+  const n=D.LOAN_SCHEDULE.filter(s=>s.status==='remitted').length,avg=n>0?remitted/n:0;
+  const items=[
+    {lbl:'Total principal',val:'1.5B ₫',sub:"Master's degree · 0% · invested by mom"},
+    {lbl:'Sent to mom',val:D.fmt(remitted,'VND',{compact:true}),sub:`${n} months · Nov '25 → Jan '26`},
+    {lbl:'Set aside (not sent)',val:D.fmt(accrued,'VND',{compact:true}),sub:`Feb–Apr in BNP & Revolut · ≈ €${D.toEUR(accrued,'VND').toFixed(0)}`},
+    {lbl:'True remaining',val:D.fmt(remaining,'VND',{compact:true}),sub:`≈ €${D.toEUR(remaining,'VND').toFixed(0)} at today's rate`},
+    {lbl:'Average sent/mo',val:D.fmt(avg,'VND',{compact:true}),sub:`≈ €${D.toEUR(avg,'VND').toFixed(0)}/month`},
+    {lbl:'Interest paid',val:'₫ 0',sub:'Mom invested, not lent'},
+    {lbl:'FX exposure',val:'EUR → VND',sub:'Watch EUR/VND for remit timing'},
+  ];
+  return (
+    <div>
+      {items.map((it,i)=>(
+        <div key={i} style={{padding:'12px 16px',borderBottom:i<items.length-1?'1px solid var(--rule)':'none'}}>
+          <div className="eyebrow">{it.lbl}</div>
+          <div style={{fontSize:15,color:'var(--ink)',marginTop:3,fontFamily:'var(--sans)',fontWeight:500}}>{it.val}</div>
+          <div className="ink3" style={{fontSize:11,marginTop:2}}>{it.sub}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DebtScreen() {
+  const remitted=D.LOAN_SCHEDULE.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
+  const accrued=D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+  const covered=remitted+accrued,remaining=D.LOAN_TOTAL_VND-remitted;
+  const pctCovered=(covered/D.LOAN_TOTAL_VND*100).toFixed(0),pctSent=(remitted/D.LOAN_TOTAL_VND*100).toFixed(0);
+  const monthsLeft=D.LOAN_SCHEDULE.filter(s=>s.status==='scheduled'||s.status==='projected').length;
+  return (
+    <div className="screen" style={{gridTemplateColumns:'1fr',background:'var(--rule)'}}>
+      <div style={{background:'var(--panel)',padding:'22px 26px',display:'flex',flexDirection:'column',gap:20}}>
+        <div style={{display:'flex',alignItems:'flex-start',gap:32,flexWrap:'wrap'}}>
+          <div>
+            <div className="eyebrow">Debt to mom</div>
+            <div className="serif" style={{fontSize:26,fontStyle:'italic',color:'var(--ink)',marginTop:6,lineHeight:1.2}}>The master's-degree principal</div>
+            <div className="ink3 serif" style={{fontSize:13,marginTop:5,fontStyle:'italic'}}>1.5B ₫ · 0% interest · started Nov 2025</div>
+          </div>
+          <div style={{marginLeft:'auto',display:'flex',gap:36,alignItems:'flex-end',flexShrink:0}}>
+            <div>
+              <div className="eyebrow">Covered (sent + set aside)</div>
+              <div className="serif" style={{fontSize:32,color:'var(--accent)',lineHeight:1.1,marginTop:4}}>{pctCovered}%</div>
+              <div className="ink3" style={{fontSize:11,marginTop:3}}>{pctSent}% actually remitted</div>
+            </div>
+            <div>
+              <div className="eyebrow">Truly remaining</div>
+              <div className="serif" style={{fontSize:32,color:'var(--ink)',lineHeight:1.1,marginTop:4}}>{(remaining/1_000_000_000).toFixed(2)}B ₫</div>
+              <div className="ink3" style={{fontSize:11,marginTop:3}}>≈ €{D.toEUR(remaining,'VND').toFixed(0)}</div>
+            </div>
+            <div>
+              <div className="eyebrow">On-schedule debt-free</div>
+              <div className="serif" style={{fontSize:32,color:'var(--up)',lineHeight:1.1,marginTop:4}}>Jun '27</div>
+              <div className="ink3" style={{fontSize:11,marginTop:3}}>{monthsLeft} months remaining</div>
+            </div>
+          </div>
+        </div>
+        <PaymentTimeline/>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:1,background:'var(--rule)'}}>
+        <div className="panel" style={{borderLeft:0,borderBottom:0}}>
+          <div className="panel-h"><span className="title">Retirement curve</span><span className="meta">Cumulative % of 1.5B ₫</span></div>
+          <div className="panel-b"><RetirementCurve/></div>
+        </div>
+        <div className="panel" style={{borderBottom:0}}>
+          <div className="panel-h"><span className="title">What if I paid more?</span></div>
+          <WhatIf/>
+        </div>
+        <div className="panel" style={{borderRight:0,borderBottom:0,overflow:'auto'}}>
+          <div className="panel-h"><span className="title">Key facts</span></div>
+          <DebtStats/>
+        </div>
+      </div>
+      <div className="panel" style={{border:0}}>
+        <div className="panel-h"><span className="title">Payment schedule</span><span className="meta">Nov '25 — Jun '27</span><div className="actions"><button className="btn primary">+ Log payment</button></div></div>
+        <div className="panel-b flush"><ScheduleTable/></div>
+      </div>
+    </div>
+  );
+}
+
+window.DebtScreen = DebtScreen;
+})();
+</script>
+
+<script type="text/babel">
+/* ===== ADVISOR SCREEN ===== */
+(() => {
+const { useState, useRef, useEffect } = React;
+const D = window.MERIDIAN_DATA;
+
+function buildContext(tone) {
+  const remitted=D.LOAN_SCHEDULE.filter(s=>s.status==='remitted').reduce((sum,s)=>sum+s.amount,0);
+  const accrued=D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((sum,s)=>sum+s.amount,0);
+  const remaining=D.LOAN_TOTAL_VND-remitted;
+  const restingEUR=D.ACCOUNTS.reduce((s,a)=>s+D.toEUR(a.balance,a.ccy),0);
+  const freeCash=restingEUR-D.toEUR(accrued,'VND');
+  const m=D.HISTORY[D.HISTORY.length-1];
+  const avgExpense=Math.round(D.HISTORY.filter(h=>h.income_eur>0).reduce((s,h)=>s+h.expense,0)/D.HISTORY.filter(h=>h.income_eur>0).length);
+  return `You are the user's personal financial advisor inside an app called Meridian.
+Voice: ${tone}. Speak plainly, lead with a number, then the why. No bullet lists. No emoji. 1-3 short paragraphs unless asked to elaborate.
+
+USER PROFILE (May 27, 2026):
+- Vietnamese, living in France. About to get married; planning a joint house deposit with partner.
+- Monthly salary: $3,850 USD (Dec 2025 was $3,675). May salary not yet received.
+- Primary currency: EUR. Also holds USD (Revolut) and tracks VND (family in Vietnam).
+- No investments yet — plans to start after the debt to mom is cleared (Jun 2027).
+
+ACCOUNTS (Revolut rates: EUR/USD ${D.FX.EURUSD}, EUR/VND ${D.FX.EURVND.toLocaleString()}):
+- BNP Paribas: €${D.ACCOUNTS[0].balance.toFixed(2)} (Feb mom payment 70M VND set aside here)
+- Revolut: $${D.ACCOUNTS[1].balance.toFixed(2)} approx €${D.toEUR(D.ACCOUNTS[1].balance,'USD').toFixed(0)} (Mar + Apr mom payments 140M VND set aside here)
+- Total resting cash: approx €${restingEUR.toFixed(0)}
+- True free cash (after mom set-asides): approx €${freeCash.toFixed(0)}
+
+DEBT TO MOM:
+- Principal: 1,500M VND for master's degree. 0% interest — mom invested, not lent.
+- Sent to mom: ${(remitted/1_000_000).toFixed(0)}M VND (Nov 25, Dec 25, Jan 26)
+- Set aside in accounts: ${(accrued/1_000_000).toFixed(0)}M VND (Feb, Mar, Apr — in BNP + Revolut, not yet remitted)
+- Remaining (not yet committed): ${((D.LOAN_TOTAL_VND-remitted-accrued)/1_000_000).toFixed(0)}M VND approx €${D.toEUR(D.LOAN_TOTAL_VND-remitted-accrued,'VND').toFixed(0)}
+- On schedule: debt-free June 2027 at ~73M VND/month
+
+SPENDING (May so far — salary pending):
+- May expenses through 25th: €${m.expense.toFixed(0)} (Nha Trang + B2 course are one-offs)
+- ${D.HISTORY.filter(h=>h.income_eur>0).length}-month avg expense: approx €${avgExpense}/month
+- Categories: Food €${m.an_uong.toFixed(0)} · Essentials €${m.must_have.toFixed(0)} · Discretionary €${m.optional.toFixed(0)}
+
+MACRO (live):
+- Fed: 3.50-3.75% (unchanged for 3rd consecutive meeting; new chair Warsh mid-June)
+- ECB: 2.00% (cutting cycle; EUR savings rates low)
+- EUR/USD: ${D.FX.EURUSD} · USD/VND: ${D.FX.USDVND.toLocaleString()} · EUR/VND: ${D.FX.EURVND.toLocaleString()}
+- EUR/VND at strong level — favorable moment to remit the 210M VND set-asides
+- Gold: $4,520 · S&P: 5,847 · VN-Index: 1,320
+
+STYLE:
+- Call the debt "the debt to mom" or "the principal" — never "your debt to your mother".
+- Always frame trade-offs in EUR equivalent.
+- User is financially literate — skip basics.
+- End every response with a clear next action or open question.`;
+}
+
+function SuggestedChips({ onPick }) {
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:6,padding:16}}>
+      <div className="eyebrow" style={{marginBottom:4}}>SUGGESTED CONSULTATIONS</div>
+      {D.BRIEFING.suggested.map((q,i)=>(
+        <button key={i} onClick={()=>onPick(q)} className="serif"
+          style={{textAlign:'left',padding:'10px 12px',border:'1px solid var(--rule)',background:'var(--panel)',color:'var(--ink-2)',fontSize:13,fontStyle:'italic',lineHeight:1.4,borderRadius:2,cursor:'pointer'}}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--ink)';}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--rule)';e.currentTarget.style.color='var(--ink-2)';}}>
+          → {q}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ChatMessage({ role, content, pending }) {
+  const isAdvisor=role==='assistant';
+  const paragraphs=content.split(/\n\n+/);
+  return (
+    <div className={'chat-msg '+(isAdvisor?'advisor':'')}>
+      <div className="who">{isAdvisor?'ADVISOR':'YOU'}</div>
+      <div className="body">
+        {pending&&<span className="dots">thinking</span>}
+        {paragraphs.map((p,i)=><p key={i}>{p}</p>)}
+      </div>
+    </div>
+  );
+}
+
+function AdvisorScreen({ tweaks }) {
+  const [messages,setMessages]=useState([]);
+  const [input,setInput]=useState('');
+  const [busy,setBusy]=useState(false);
+  const scrollRef=useRef(null);
+  useEffect(()=>{if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight;},[messages,busy]);
+
+  async function send(text) {
+    const q=(text||input).trim();
+    if(!q||busy)return;
+    setInput('');
+    const newMessages=[...messages,{role:'user',content:q}];
+    setMessages(newMessages);
+    setBusy(true);
+    try {
+      const system=buildContext(tweaks?.advisorTone||'Calm & analytical, like a private wealth manager');
+      const reply=await window.claude.complete({
+        messages:[{role:'user',content:system+"\n\n---\n\nUser question:\n"+q+"\n\n(Earlier in this conversation:\n"+messages.map(m=>m.role.toUpperCase()+': '+m.content).join('\n')+")"}],
+      });
+      setMessages([...newMessages,{role:'assistant',content:reply}]);
+    } catch(err) {
+      setMessages([...newMessages,{role:'assistant',content:"I couldn't reach the advisory engine just now. Try again in a moment."}]);
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="screen" style={{gridTemplateColumns:'1.2fr 1.4fr 1fr',height:'100%'}}>
+      <div className="panel" style={{borderTop:0,borderLeft:0,borderBottom:0,overflow:'auto'}}>
+        <div className="panel-h"><span className="title">TODAY'S BRIEFING</span><span className="meta">{D.BRIEFING.date}</span></div>
+        <div style={{padding:24,display:'flex',flexDirection:'column',gap:16}}>
+          <div className="eyebrow">FROM YOUR ADVISOR · {(tweaks?.advisorTone||'CALM & ANALYTICAL').toUpperCase()}</div>
+          <div className="serif" style={{fontSize:22,fontStyle:'italic',lineHeight:1.25,color:'var(--ink)'}}>{D.BRIEFING.title}</div>
+          {D.BRIEFING.body.map((p,i)=><div key={i} className="serif" style={{fontSize:14,lineHeight:1.65,color:'var(--ink-2)'}}>{p}</div>)}
+          <div style={{marginTop:12,borderTop:'1px solid var(--rule)',paddingTop:14}}>
+            <div className="eyebrow" style={{marginBottom:8}}>SIGNED</div>
+            <div className="serif" style={{fontSize:13,color:'var(--ink-3)',fontStyle:'italic'}}>Meridian Advisory · prepared for you, weekdays 06:00 CET.</div>
+          </div>
+        </div>
+      </div>
+      <div className="panel" style={{borderTop:0,borderBottom:0,display:'flex',flexDirection:'column'}}>
+        <div className="panel-h"><span className="title">LIVE CONSULTATION</span><span className="badge info">claude · haiku</span><span className="meta">{messages.length} exchanges</span></div>
+        <div ref={scrollRef} style={{flex:1,overflow:'auto',padding:'0 20px'}}>
+          {messages.length===0&&(
+            <div style={{padding:'32px 0',textAlign:'center',color:'var(--ink-3)'}}>
+              <div className="serif" style={{fontSize:16,fontStyle:'italic',marginBottom:6}}>Ask anything. The advisor sees your full position.</div>
+              <div className="mono" style={{fontSize:10,letterSpacing:'0.14em'}}>START TYPING OR PICK A SUGGESTION →</div>
+            </div>
+          )}
+          {messages.map((m,i)=><ChatMessage key={i} role={m.role} content={m.content}/>)}
+          {busy&&<ChatMessage role="assistant" content="" pending/>}
+        </div>
+        <form onSubmit={e=>{e.preventDefault();send();}} style={{display:'flex',gap:8,padding:'12px 16px',borderTop:'1px solid var(--rule)',background:'var(--panel-2)'}}>
+          <input className="field" placeholder="Ask the advisor — e.g. 'should I accelerate the debt?'" value={input} onChange={e=>setInput(e.target.value)} style={{flex:1,height:34}}/>
+          <button type="submit" className="btn primary" disabled={busy} style={{height:34}}>SEND →</button>
+        </form>
+      </div>
+      <div className="panel" style={{borderTop:0,borderRight:0,borderBottom:0,overflow:'auto'}}>
+        <div className="panel-h"><span className="title">SUGGESTED</span></div>
+        <SuggestedChips onPick={q=>send(q)}/>
+        <div className="panel-h" style={{borderTop:'1px solid var(--rule)'}}><span className="title">ADVISOR HAS ACCESS TO</span></div>
+        <div style={{padding:14}}>
+          {[{lbl:'Your full ledger',sub:'Nov 2025 — May 2026 entries'},{lbl:'Debt-to-mom schedule',sub:"1.5B VND principal · Nov '25 onwards"},{lbl:'2 accounts · 3 currencies',sub:'EUR · USD · VND balances live'},{lbl:'Net worth + sav. rate',sub:'updated nightly'},{lbl:'Macro signals',sub:'rates, FX, CPI, equity, commodities'},{lbl:'Your stated goals',sub:'wedding, emergency fund, house deposit'}].map((it,i)=>(
+            <div key={i} style={{padding:'8px 0',borderBottom:i<5?'1px solid var(--rule)':'none'}}>
+              <div className="mono" style={{fontSize:11,color:'var(--ink)'}}>{it.lbl}</div>
+              <div className="mono ink3" style={{fontSize:10}}>{it.sub}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.AdvisorScreen = AdvisorScreen;
+})();
+</script>
+
+<script type="text/babel">
+/* ===== MACRO SCREEN ===== */
+(() => {
+const D = window.MERIDIAN_DATA;
+
+function trendDataFor(metric) {
+  let seed=0;
+  for(const c of metric.id)seed=(seed*31+c.charCodeAt(0))%1000;
+  function rand(){seed=(seed*9301+49297)%233280;return seed/233280;}
+  let v=parseFloat(metric.val.replace(/[^0-9.]/g,''))||100;
+  const data=[];
+  for(let i=0;i<32;i++){v*=1+(rand()-.5)*.012;data.push(v);}
+  if(metric.trend==='up')data[data.length-1]*=1.005;
+  if(metric.trend==='down')data[data.length-1]*=.995;
+  return data;
+}
+
+function MiniSpark({data,color,height=28,width=110}){
+  const min=Math.min(...data),max=Math.max(...data),range=max-min||1;
+  const pts=data.map((v,i)=>[(i/(data.length-1))*width,height-((v-min)/range)*(height-4)-2]);
+  const path=pts.map((p,i)=>`${i===0?'M':'L'} ${p[0]} ${p[1]}`).join(' ');
+  return <svg width={width} height={height}><path d={path} stroke={color} strokeWidth="1.25" fill="none"/><circle cx={pts[pts.length-1][0]} cy={pts[pts.length-1][1]} r="2" fill={color}/></svg>;
+}
+
+function MetricCard({m}){
+  const color=m.trend==='up'?'var(--up)':m.trend==='down'?'var(--down)':'var(--ink-3)';
+  const data=trendDataFor(m);
+  return(
+    <div className="metric-card">
+      <div className="top">
+        <div><div className="name">{m.name}</div><div className="val">{m.val}</div></div>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
+          <span className={`badge ${m.trend==='up'?'up':m.trend==='down'?'down':''}`}>{m.trend==='up'?'▲':m.trend==='down'?'▼':'◆'} {m.delta}</span>
+          <MiniSpark data={data} color={color}/>
+        </div>
+      </div>
+      <div className="commentary">{m.commentary}</div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:4}}>
+        <span className="mono ink4" style={{fontSize:9,letterSpacing:'0.1em'}}>LAST: {m.last.toUpperCase()}</span>
+        <button className="btn ghost" style={{fontSize:9}}>ASK ADVISOR →</button>
+      </div>
+    </div>
+  );
+}
+
+function MacroSection({title,metrics}){
+  return(
+    <div className="panel" style={{borderLeft:0,borderRight:0,borderTop:0}}>
+      <div className="panel-h"><span className="title">{title}</span><span className="meta">{metrics.length} INDICATORS</span></div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:1,background:'var(--rule)'}}>
+        {metrics.map(m=><div key={m.id} style={{background:'var(--panel)'}}><MetricCard m={m}/></div>)}
+      </div>
+    </div>
+  );
+}
+
+function MacroScreen(){
+  const groups={
+    rates:{title:'POLICY RATES · CENTRAL BANKS',metrics:D.MACRO.filter(m=>m.group==='rates')},
+    fx:{title:'FOREIGN EXCHANGE · LIVE',metrics:D.MACRO.filter(m=>m.group==='fx')},
+    cpi:{title:'INFLATION · CPI (YOY)',metrics:D.MACRO.filter(m=>m.group==='cpi')},
+    equity:{title:'EQUITY · INDICES',metrics:D.MACRO.filter(m=>m.group==='equity')},
+    comm:{title:'COMMODITIES',metrics:D.MACRO.filter(m=>m.group==='comm')},
+  };
+  return(
+    <div style={{background:'var(--rule)',minHeight:'100%'}}>
+      <div style={{background:'var(--panel)',padding:'24px 28px',borderBottom:'1px solid var(--rule)'}}>
+        <div className="eyebrow">MACRO CONTEXT</div>
+        <div className="serif" style={{fontSize:28,fontStyle:'italic',lineHeight:1.2,color:'var(--ink)',marginTop:4}}>The world your money lives in — annotated.</div>
+        <div className="serif" style={{fontSize:13,color:'var(--ink-3)',marginTop:6,maxWidth:760,lineHeight:1.5,fontStyle:'italic'}}>Every figure carries a one-line read: what it means for <em>your</em> situation today.</div>
+      </div>
+      {Object.values(groups).map((g,i)=><MacroSection key={i} title={g.title} metrics={g.metrics}/>)}
+    </div>
+  );
+}
+
+window.MacroScreen = MacroScreen;
+})();
+</script>
+
+<script type="text/babel">
+/* ===== GOALS SCREEN ===== */
+(() => {
+const D = window.MERIDIAN_DATA;
+
+function GoalCard({goal}){
+  const pct=(goal.saved/goal.target)*100,remaining=goal.target-goal.saved;
+  const byDate=new Date(goal.by+'-01'),today=new Date(2026,4,27);
+  const monthsUntil=Math.max(1,Math.round((byDate-today)/(1000*60*60*24*30)));
+  const requiredMonthly=remaining/monthsUntil;
+  return(
+    <div style={{background:'var(--panel)',padding:24,display:'flex',flexDirection:'column',gap:16,minHeight:280}}>
+      <div className="row-between">
+        <div><div className="eyebrow">GOAL</div><div className="serif" style={{fontSize:22,fontStyle:'italic',color:'var(--ink)',marginTop:4,lineHeight:1.2}}>{goal.name}</div></div>
+        <div className="badge">{goal.by.toUpperCase()}</div>
+      </div>
+      <div>
+        <div className="row-between" style={{marginBottom:6}}>
+          <span className="mono" style={{fontSize:18,color:'var(--accent)'}}>{D.fmt(goal.saved,goal.ccy,{decimals:0})}</span>
+          <span className="mono ink3" style={{fontSize:11}}>of {D.fmt(goal.target,goal.ccy,{decimals:0})}</span>
+        </div>
+        <div className="bar tall"><div className="bar-fill" style={{width:`${pct}%`,background:'var(--accent)'}}></div></div>
+        <div className="row-between" style={{marginTop:4}}>
+          <span className="mono ink3" style={{fontSize:10}}>{pct.toFixed(1)}% complete</span>
+          <span className="mono ink3" style={{fontSize:10}}>{D.fmt(remaining,goal.ccy,{decimals:0})} to go</span>
+        </div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:1,background:'var(--rule)',border:'1px solid var(--rule)'}}>
+        <div style={{padding:10,background:'var(--panel-2)'}}><div className="eyebrow">MONTHS LEFT</div><div className="mono" style={{fontSize:18,color:'var(--ink)',marginTop:2}}>{monthsUntil}</div></div>
+        <div style={{padding:10,background:'var(--panel-2)'}}><div className="eyebrow">REQUIRED / MO</div><div className="mono" style={{fontSize:18,color:'var(--ink)',marginTop:2}}>€{requiredMonthly.toFixed(0)}</div></div>
+      </div>
+      <div className="serif ink2" style={{fontSize:12,fontStyle:'italic',lineHeight:1.5,borderLeft:'2px solid var(--accent)',paddingLeft:12}}>
+        {goal.id==='g1'&&"Wedding budget pacing: behind plan. Once the debt to mom drops to <50% of monthly outflow (Q3 '26), redirect ~€350/mo here."}
+        {goal.id==='g2'&&"Half-built — €9,420 covers ~3 months of essentials. Target six months. Don't touch unless EUR/VND moves >5% against you."}
+        {goal.id==='g3'&&"Joint with partner. After debt-free (Jun '27), this becomes priority one. Realistically a 2028-29 purchase."}
+      </div>
+    </div>
+  );
+}
+
+function AllocationDraft(){
+  const items=[
+    {lbl:'Emergency top-up',pct:20,eur:540,color:'var(--info)',note:'until 6 mo coverage'},
+    {lbl:'House deposit',pct:40,eur:1080,color:'var(--accent)',note:'joint with partner'},
+    {lbl:'Global equity DCA',pct:25,eur:675,color:'var(--up)',note:'broad-market ETF'},
+    {lbl:'Bonds / cash plus',pct:10,eur:270,color:'var(--magenta)',note:'short-duration €'},
+    {lbl:'Discretionary lift',pct:5,eur:135,color:'var(--ink-3)',note:'travel, learning'},
+  ];
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+      <div className="eyebrow">FREE CAPITAL · €2,700/MO</div>
+      {items.map((it,i)=>(
+        <div key={i} style={{display:'flex',flexDirection:'column',gap:5}}>
+          <div className="row-between" style={{whiteSpace:'nowrap'}}>
+            <span className="mono" style={{fontSize:12,color:'var(--ink)'}}>{it.lbl}</span>
+            <span className="mono" style={{fontSize:12}}><span style={{color:it.color}}>€{it.eur}</span><span className="ink3"> · {it.pct}%</span></span>
+          </div>
+          <div className="bar"><div className="bar-fill" style={{width:`${it.pct*2.5}%`,background:it.color}}></div></div>
+          <div className="mono ink4" style={{fontSize:9}}>{it.note}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GoalsScreen(){
+  return(
+    <div style={{background:'var(--rule)',minHeight:'100%'}}>
+      <div style={{background:'var(--panel)',padding:'24px 28px',borderBottom:'1px solid var(--rule)'}}>
+        <div className="eyebrow">SAVINGS GOALS</div>
+        <div className="serif" style={{fontSize:28,fontStyle:'italic',lineHeight:1.2,color:'var(--ink)',marginTop:4}}>What you're building toward.</div>
+        <div className="serif" style={{fontSize:13,color:'var(--ink-3)',marginTop:6,fontStyle:'italic'}}>Three concurrent goals, prioritized: emergency fund first, wedding next, house after Jun '27.</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:1,background:'var(--rule)'}}>
+        {D.GOALS.map(g=><GoalCard key={g.id} goal={g}/>)}
+      </div>
+      <div className="panel" style={{border:0}}>
+        <div className="panel-h"><span className="title">CAPITAL ALLOCATION · POST-DEBT (JUN '27 →)</span><span className="meta">DRAFT PLAN — REVISIT WITH ADVISOR</span></div>
+        <div className="panel-b" style={{display:'grid',gridTemplateColumns:'1.4fr 1fr',gap:24}}>
+          <AllocationDraft/>
+          <div className="serif" style={{fontSize:13.5,lineHeight:1.65,color:'var(--ink-2)',fontStyle:'italic'}}>
+            <p>Once the debt to mom is retired, your monthly €2,600–2,700 of debt service becomes free capital. The plan below reallocates it: top off emergency to six months, accelerate the house deposit, and start the equity sleeve modestly while learning the discipline.</p>
+            <p>This is a draft. Sit with the advisor to pressure-test it once you're within four months of debt-free.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.GoalsScreen = GoalsScreen;
+})();
+</script>
+
+<script type="text/babel">
+/* ===== MERIDIAN TWEAKS + APP SHELL ===== */
+(() => {
+const { TweaksPanel, TweakSection, TweakSelect, TweakRadio, TweakColor } = window;
+
+function MeridianTweaks({ tweaks, setTweak }) {
+  return (
+    <TweaksPanel title="Tweaks">
+      <TweakSection label="Theme"/>
+      <TweakRadio label="Mode" value={tweaks.theme} options={['dark','light']} onChange={v=>setTweak('theme',v)}/>
+      <TweakColor label="Accent" value={tweaks.accent} options={['#D07090','#C05878','#7AB888','#6AAABB','#D4A060','#A85070']} onChange={v=>setTweak('accent',v)}/>
+      <TweakSection label="Density"/>
+      <TweakRadio label="Spacing" value={tweaks.density} options={['compact','normal','spacious']} onChange={v=>setTweak('density',v)}/>
+      <TweakSection label="Typography"/>
+      <TweakSelect label="UI sans" value={tweaks.uiFont} options={['Geist','IBM Plex Sans','Inter Tight']} onChange={v=>setTweak('uiFont',v)}/>
+      <TweakSelect label="Data mono" value={tweaks.dataFont} options={['JetBrains Mono','IBM Plex Mono','Geist Mono']} onChange={v=>setTweak('dataFont',v)}/>
+      <TweakSelect label="Editorial serif" value={tweaks.serifFont} options={['Newsreader','Instrument Serif','EB Garamond','Spectral']} onChange={v=>setTweak('serifFont',v)}/>
+      <TweakSection label="Advisor"/>
+      <TweakSelect label="Tone" value={tweaks.advisorTone} options={['Calm & analytical','Direct & blunt','Friendly coach','Macro-nerd peer']} onChange={v=>setTweak('advisorTone',v)}/>
+    </TweaksPanel>
+  );
+}
+
+const { useState, useEffect, useMemo } = React;
+const D = window.MERIDIAN_DATA;
+
+const Icon = {
+  overview: p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M3 13h7V3H3v10zm0 8h7v-6H3v6zm9 0h9v-9h-9v9zm0-18v7h9V3h-9z"/></svg>,
+  ledger:   p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M5 3h11l3 3v15H5V3z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>,
+  debt:     p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M4 12h16M4 12l4-4M4 12l4 4M20 6v12"/></svg>,
+  advisor:  p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M4 5h16v12H7l-3 3V5z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>,
+  macro:    p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M3 17l6-6 4 4 8-8M21 7h-5M21 7v5"/></svg>,
+  goals:    p=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>,
+};
+
+const NAV = [
+  { id:'overview', tip:'Overview',    icon:Icon.overview },
+  { id:'ledger',   tip:'Ledger',      icon:Icon.ledger },
+  { id:'debt',     tip:'Debt to mom', icon:Icon.debt },
+  { id:'goals',    tip:'Goals',       icon:Icon.goals },
+  { id:'advisor',  tip:'Advisor',     icon:Icon.advisor },
+  { id:'macro',    tip:'Macro',       icon:Icon.macro },
+];
+
+function TopBar({ screen, theme, setTheme, now }) {
+  const labels = { overview:'Overview', ledger:'Ledger', debt:'Debt to mom', goals:'Goals', advisor:'Advisor', macro:'Macro' };
+  return (
+    <header className="topbar">
+      <div className="brand"><span className="dot"></span><span>Meridian</span></div>
+      <div className="crumbs">{labels[screen]||screen}</div>
+      <div className="right">
+        <div className="fx">
+          <span><span className="pair">EUR/USD</span> <span className="val">{D.FX.EURUSD.toFixed(4)}</span></span>
+          <span><span className="pair">EUR/VND</span> <span className="val">{D.FX.EURVND.toLocaleString()}</span></span>
+          <span><span className="pair">USD/VND</span> <span className="val">{D.FX.USDVND.toLocaleString()}</span></span>
+        </div>
+        <span style={{color:'var(--ink-4)'}}>·</span>
+        <span>{now}</span>
+        <span style={{color:'var(--ink-4)'}}>·</span>
+        <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')}>{theme==='dark'?'Light':'Dark'}</button>
+      </div>
+    </header>
+  );
+}
+
+function SideNav({ screen, setScreen }) {
+  return (
+    <aside className="sidebar">
+      {NAV.map(n=>{const I=n.icon;return(
+        <button key={n.id} className={'nav-btn'+(screen===n.id?' active':'')} onClick={()=>setScreen(n.id)} aria-label={n.tip}>
+          <I/><span className="tip">{n.tip}</span>
+        </button>
+      );})}
+    </aside>
+  );
+}
+
+function App() {
+  const tweakDefaults = { theme:'dark', density:'normal', accent:'#D07090', uiFont:'Geist', dataFont:'JetBrains Mono', serifFont:'Newsreader', advisorTone:'Calm & analytical', chartStyle:'lines', layout:'panels' };
+  const [tweaks,setTweak] = window.useTweaks(tweakDefaults);
+  const [screen,setScreen] = useState('overview');
+  const [now,setNow] = useState('');
+
+  useEffect(()=>{document.documentElement.dataset.theme=tweaks.theme;document.documentElement.dataset.density=tweaks.density;},[tweaks.theme,tweaks.density]);
+  useEffect(()=>{document.documentElement.style.setProperty('--accent',tweaks.accent);},[tweaks.accent]);
+  useEffect(()=>{document.documentElement.style.setProperty('--sans',`'${tweaks.uiFont}', system-ui, sans-serif`);document.documentElement.style.setProperty('--mono',`'${tweaks.dataFont}', ui-monospace, monospace`);document.documentElement.style.setProperty('--serif',`'${tweaks.serifFont}', Georgia, serif`);},[tweaks.uiFont,tweaks.dataFont,tweaks.serifFont]);
+  useEffect(()=>{const t=setInterval(()=>{const d=new Date();setNow(`27 May 2026 · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} CET`);},1000);return()=>clearInterval(t);},[]);
+
+  const ScreenComp = useMemo(()=>({overview:window.OverviewScreen,ledger:window.LedgerScreen,debt:window.DebtScreen,goals:window.GoalsScreen,advisor:window.AdvisorScreen,macro:window.MacroScreen}[screen]),[screen]);
+
+  return (
+    <div className="app">
+      <TopBar screen={screen} theme={tweaks.theme} setTheme={v=>setTweak('theme',v)} now={now}/>
+      <SideNav screen={screen} setScreen={setScreen}/>
+      <main className="main" data-screen-label={screen}>
+        {ScreenComp?<ScreenComp tweaks={tweaks} setTweak={setTweak}/>:<div style={{padding:40,color:'var(--ink-3)'}}>Screen not found.</div>}
+      </main>
+      <MeridianTweaks tweaks={tweaks} setTweak={setTweak}/>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+})();
+</script>
+
+</body>
+</html>
