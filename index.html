@@ -1026,9 +1026,28 @@ const MONTHS = [
   { value:'2025-11', label:'Nov 2025' },
 ];
 
-function MonthlyInputs({ selectedMonth }) {
-  const input = D.MONTHLY_INPUTS.find(m=>m.month===selectedMonth)||null;
-  const history = D.MONTHLY_INPUTS.slice().reverse();
+function MonthlyInputs({ selectedMonth, monthlyInputs, updateMonthlyInput }) {
+  const input = monthlyInputs.find(m=>m.month===selectedMonth)||null;
+  const history = monthlyInputs.slice().reverse();
+  const [showSalary, setShowSalary] = React.useState(false);
+  const [showMom, setShowMom] = React.useState(false);
+  const [salaryVal, setSalaryVal] = React.useState('');
+  const [momVal, setMomVal] = React.useState('');
+
+  function submitSalary() {
+    const v = parseFloat(salaryVal);
+    if (!v || v <= 0) return;
+    updateMonthlyInput(selectedMonth, 'income_usd', v);
+    updateMonthlyInput(selectedMonth, 'income_eur', parseFloat((v / D.FX.EURUSD).toFixed(0)));
+    setSalaryVal(''); setShowSalary(false);
+  }
+  function submitMom() {
+    const v = parseFloat(momVal);
+    if (!v || v <= 0) return;
+    updateMonthlyInput(selectedMonth, 'mom_set_aside', v * 1_000_000);
+    setMomVal(''); setShowMom(false);
+  }
+
   return (
     <div>
       <div style={{padding:'18px 20px',borderBottom:'1px solid var(--rule)'}}>
@@ -1081,9 +1100,33 @@ function MonthlyInputs({ selectedMonth }) {
           </tbody>
         </table>
       </div>
+      {showSalary&&(
+        <div style={{padding:'12px 20px',background:'var(--bg-1)',borderTop:'1px solid var(--rule)',display:'flex',flexDirection:'column',gap:8}}>
+          <div className="eyebrow">Log salary · {MONTHS.find(m=>m.value===selectedMonth)?.label}</div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <span style={{fontSize:13,color:'var(--ink-3)',fontFamily:'var(--mono)'}}>$</span>
+            <input className="field" type="number" step="1" min="0" placeholder="3850" value={salaryVal} onChange={e=>setSalaryVal(e.target.value)} style={{flex:1}} autoFocus onKeyDown={e=>e.key==='Enter'&&submitSalary()}/>
+            <button className="btn primary" onClick={submitSalary}>Save</button>
+            <button className="btn" onClick={()=>{setShowSalary(false);setSalaryVal('');}}>✕</button>
+          </div>
+          {salaryVal&&parseFloat(salaryVal)>0&&<div className="ink3" style={{fontSize:11}}>≈ €{(parseFloat(salaryVal)/D.FX.EURUSD).toFixed(0)} at current EUR/USD {D.FX.EURUSD}</div>}
+        </div>
+      )}
+      {showMom&&(
+        <div style={{padding:'12px 20px',background:'var(--bg-1)',borderTop:'1px solid var(--rule)',display:'flex',flexDirection:'column',gap:8}}>
+          <div className="eyebrow">Set aside for mom · {MONTHS.find(m=>m.value===selectedMonth)?.label}</div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <input className="field" type="number" step="1" min="0" placeholder="70" value={momVal} onChange={e=>setMomVal(e.target.value)} style={{flex:1}} autoFocus onKeyDown={e=>e.key==='Enter'&&submitMom()}/>
+            <span style={{fontSize:12,color:'var(--ink-3)',fontFamily:'var(--mono)',whiteSpace:'nowrap'}}>M ₫</span>
+            <button className="btn primary" onClick={submitMom}>Save</button>
+            <button className="btn" onClick={()=>{setShowMom(false);setMomVal('');}}>✕</button>
+          </div>
+          {momVal&&parseFloat(momVal)>0&&<div className="ink3" style={{fontSize:11}}>≈ €{D.toEUR(parseFloat(momVal)*1_000_000,'VND').toFixed(0)} at current EUR/VND rate</div>}
+        </div>
+      )}
       <div style={{padding:'12px 20px',background:'var(--panel-2)',borderTop:'1px solid var(--rule)',display:'flex',gap:8}}>
-        <button className="btn" style={{flex:1}}>+ Log salary</button>
-        <button className="btn primary" style={{flex:1}}>+ Set aside for mom</button>
+        <button className="btn" style={{flex:1,background:showSalary?'var(--panel-hi)':undefined}} onClick={()=>{setShowMom(false);setShowSalary(s=>!s);setSalaryVal('');}}>+ Log salary</button>
+        <button className="btn primary" style={{flex:1}} onClick={()=>{setShowSalary(false);setShowMom(s=>!s);setMomVal('');}}>+ Set aside for mom</button>
       </div>
     </div>
   );
@@ -1224,25 +1267,27 @@ function SpendingCheck({ selectedMonth }) {
 function LedgerScreen() {
   const [selectedMonth,setSelectedMonth]=useState('2026-05');
   const [allEntries,setAllEntries]=useState(D.ENTRIES);
+  const [monthlyInputs,setMonthlyInputs]=useState(()=>D.MONTHLY_INPUTS.map(m=>({...m})));
   const expCats=D.CATEGORIES.filter(c=>c.id!=='income'&&c.id!=='me');
   const [activeCats,setActiveCats]=useState(expCats.map(c=>c.id));
   const [displayCcy,setDisplayCcy]=useState('EUR');
   const [query,setQuery]=useState('');
   function toggleCat(id){setActiveCats(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id]);}
   function onAdd(entry){setAllEntries(s=>[entry,...s]);}
+  function updateMonthlyInput(month,key,value){setMonthlyInputs(prev=>prev.map(m=>m.month===month?{...m,[key]:value}:m));}
   const filtered=useMemo(()=>allEntries.filter(e=>e.date.startsWith(selectedMonth)&&activeCats.includes(e.cat)&&(!query||e.label.toLowerCase().includes(query.toLowerCase()))),[allEntries,selectedMonth,activeCats,query]);
   const totalEUR=filtered.reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
   const monthLabel=MONTHS.find(m=>m.value===selectedMonth)?.label||selectedMonth;
   return (
-    <div className="screen" style={{gridTemplateColumns:'360px 1fr',gridTemplateRows:'auto 1fr',background:'var(--rule)',height:'100%'}}>
+    <div className="screen" style={{gridTemplateColumns:'2fr 3fr',gridTemplateRows:'auto 1fr',background:'var(--rule)',height:'100%'}}>
       <div className="panel" style={{borderTop:0,borderLeft:0,borderBottom:0,overflow:'auto'}}>
         <div className="panel-h">
           <span className="title">Monthly inputs</span>
-          <select className="field" style={{height:26,fontSize:11,marginLeft:'auto'}} value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)}>
+          <select className="field" style={{height:26,fontSize:11,marginLeft:'auto',width:148,flexShrink:0}} value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)}>
             {MONTHS.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
           </select>
         </div>
-        <MonthlyInputs selectedMonth={selectedMonth}/>
+        <MonthlyInputs selectedMonth={selectedMonth} monthlyInputs={monthlyInputs} updateMonthlyInput={updateMonthlyInput}/>
       </div>
       <div className="panel" style={{borderTop:0,borderRight:0,borderBottom:0,display:'flex',flexDirection:'column',overflow:'hidden'}}>
         <div className="panel-h">
