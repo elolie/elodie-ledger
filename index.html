@@ -1266,15 +1266,19 @@ function SpendingCheck({ selectedMonth }) {
 
 function LedgerScreen() {
   const [selectedMonth,setSelectedMonth]=useState('2026-05');
-  const [allEntries,setAllEntries]=useState(D.ENTRIES);
-  const [monthlyInputs,setMonthlyInputs]=useState(()=>D.MONTHLY_INPUTS.map(m=>({...m})));
+  const [allEntries,setAllEntries]=useState(()=>{
+    try{const s=localStorage.getItem('meridian_entries');return s?JSON.parse(s):D.ENTRIES;}catch{return D.ENTRIES;}
+  });
+  const [monthlyInputs,setMonthlyInputs]=useState(()=>{
+    try{const s=localStorage.getItem('meridian_monthly_inputs');return s?JSON.parse(s):D.MONTHLY_INPUTS.map(m=>({...m}));}catch{return D.MONTHLY_INPUTS.map(m=>({...m}));}
+  });
   const expCats=D.CATEGORIES.filter(c=>c.id!=='income'&&c.id!=='me');
   const [activeCats,setActiveCats]=useState(expCats.map(c=>c.id));
   const [displayCcy,setDisplayCcy]=useState('EUR');
   const [query,setQuery]=useState('');
   function toggleCat(id){setActiveCats(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id]);}
-  function onAdd(entry){setAllEntries(s=>[entry,...s]);}
-  function updateMonthlyInput(month,key,value){setMonthlyInputs(prev=>prev.map(m=>m.month===month?{...m,[key]:value}:m));}
+  function onAdd(entry){setAllEntries(s=>{const n=[entry,...s];try{localStorage.setItem('meridian_entries',JSON.stringify(n));}catch{}return n;});}
+  function updateMonthlyInput(month,key,value){setMonthlyInputs(prev=>{const n=prev.map(m=>m.month===month?{...m,[key]:value}:m);try{localStorage.setItem('meridian_monthly_inputs',JSON.stringify(n));}catch{}return n;});}
   const filtered=useMemo(()=>allEntries.filter(e=>e.date.startsWith(selectedMonth)&&activeCats.includes(e.cat)&&(!query||e.label.toLowerCase().includes(query.toLowerCase()))),[allEntries,selectedMonth,activeCats,query]);
   const totalEUR=filtered.reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
   const monthLabel=MONTHS.find(m=>m.value===selectedMonth)?.label||selectedMonth;
