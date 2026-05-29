@@ -986,10 +986,34 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
     .reduce((s, e) => s + D.toEUR(e.amount, e.ccy), 0);
   const runningCash = D.BASELINE.cash_eur + newIncome - newExpenses;
 
-  // Accurate: only count months marked 'accrued' in the live loan schedule
-  const accrued = schedule.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+  // Accurate accrued = loanSchedule 'accrued' months + any monthlyInputs with mom_set_aside
+  // that aren't yet reflected in loanSchedule (e.g. logged before updateLoanEntry existed)
+  const scheduleAccrued = schedule.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+  const inputsExtraAccrued = inputs.reduce((s,m)=>{
+    if (!m.mom_set_aside || m.mom_set_aside<=0) return s;
+    const sched = schedule.find(x=>x.month===m.month);
+    if (sched && (sched.status==='accrued'||sched.status==='remitted')) return s; // already counted or sent
+    return s + m.mom_set_aside; // logged in inputs but not yet in schedule
+  },0);
+  const accrued = scheduleAccrued + inputsExtraAccrued;
   const freeCash = runningCash - D.toEUR(accrued, 'VND');
   const nwDelta=D.NET_WORTH.net-D.NET_WORTH.history[0].val;
+  // Live cashflow chart data — override current month with live figures
+  const liveChartData = D.HISTORY.map(h => {
+    if (h.m === curMonth) {
+      return {...h, expense: curMonthExpense, income_eur: salaryEUR, income_usd: salaryUSD};
+    }
+    return h;
+  });
+  const chartTitle = `Cashflow · Nov '25 – ${now.slice(0,6) || curMonthLabel.slice(0,3)+' \''+String(now.slice(-2)||'26')}`;
+
+  // Live briefing figures
+  const todayStr = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const remittedTotal = schedule.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
+  const accruedTotal = schedule.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+  const coveredPct = ((remittedTotal+accruedTotal)/D.LOAN_TOTAL_VND*100).toFixed(0);
+  const remittedPct = (remittedTotal/D.LOAN_TOTAL_VND*100).toFixed(0);
+
   return (
     <div className="screen" style={{gridTemplateColumns:'1fr',gridAutoRows:'auto'}}>
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:1,background:'var(--rule)'}}>
@@ -1000,18 +1024,19 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr 1.3fr',gap:1,background:'var(--rule)'}}>
         <div className="panel" style={{borderTop:0,borderLeft:0,borderBottom:0}}>
-          <div className="panel-h"><span className="title">Cashflow · Nov '25 – May '26</span><span className="badge up">● Income (EUR equiv.)</span><span className="badge down">● Expense</span></div>
-          <div className="panel-b"><CashflowChart data={D.HISTORY}/></div>
+          <div className="panel-h"><span className="title">Cashflow · Nov '25 – {curMonthLabel}</span><span className="badge up">● Income (EUR equiv.)</span><span className="badge down">● Expense</span></div>
+          <div className="panel-b"><CashflowChart data={liveChartData}/></div>
         </div>
         <div className="panel" style={{borderTop:0,borderBottom:0}}>
           <div className="panel-h"><span className="title">Debt to mom · progress</span><span className="meta">1.5B ₫ total</span></div>
           <div className="panel-b" style={{display:'flex',justifyContent:'center',padding:18}}><DebtArc loanSchedule={schedule}/></div>
         </div>
         <div className="panel" style={{borderTop:0,borderBottom:0,borderRight:0}}>
-          <div className="panel-h"><span className="title">Today's briefing</span><span className="meta">{D.BRIEFING.date}</span></div>
+          <div className="panel-h"><span className="title">Today's briefing</span><span className="meta">{todayStr}</span></div>
           <div className="panel-b" style={{display:'flex',flexDirection:'column',gap:12}}>
-            <div className="serif" style={{fontSize:18,lineHeight:1.3,color:'var(--ink)',fontStyle:'italic'}}>{D.BRIEFING.title}</div>
-            <div className="serif" style={{fontSize:13,lineHeight:1.65,color:'var(--ink-2)'}}>{D.BRIEFING.body[0]}</div>
+            <div className="serif" style={{fontSize:16,lineHeight:1.3,color:'var(--ink)',fontStyle:'italic'}}>{todayStr.split(',')[0]} — your finances in context</div>
+            <div className="serif" style={{fontSize:13,lineHeight:1.65,color:'var(--ink-2)'}}>
+              Total cash running at <span style={{color:'var(--ink)',fontWeight:500}}>€{runningCash.toLocaleString('en-US',{maximumFractionDigits:0})}</span>, free cash <span style={{color:'var(--ink)',fontWeight:500}}>€{freeCash.toLocaleString('en-US',{maximumFractionDigits:0})}</span> after {D.fmt(accrued,'VND',{compact:true})} earmarked for mom. Debt {coveredPct}% covered ({remittedPct}% actually remitted). {curMonthLabel} expenses at <span style={{color:'var(--ink)',fontWeight:500}}>€{curMonthExpense.toFixed(0)}</span>{salaryUSD>0?' — salary received.':' — salary still pending.'}</div>
             <div style={{marginTop:'auto'}}><button className="btn">Open advisor →</button></div>
           </div>
         </div>
