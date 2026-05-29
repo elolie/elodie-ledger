@@ -217,7 +217,7 @@ window.MERIDIAN_DATA = (() => {
     { id: 'bnp',     name: 'BNP Paribas', ccy: 'EUR', balance: 8394.46, bank: 'BNP',     note: 'Feb mom payment (70M ₫) set aside here' },
     { id: 'revolut', name: 'Revolut',     ccy: 'USD', balance: 6951.71, bank: 'Revolut', note: 'Mar + Apr mom payments (140M ₫) set aside here' },
   ];
-  const LOAN_TOTAL_VND = 1_500_000_000;
+  const BASELINE = { date: '2026-05-29', cash_eur: 14373.06 };
   const LOAN_SCHEDULE = [
     { month: '2025-11', amount: 60_000_000,  status: 'remitted' },
     { month: '2025-12', amount: 70_000_000,  status: 'remitted' },
@@ -620,7 +620,7 @@ window.MERIDIAN_DATA = (() => {
   function toUSD(a,ccy){if(ccy==='USD')return a;if(ccy==='EUR')return a*FX.EURUSD;if(ccy==='VND')return a/FX.USDVND;return a;}
   function toVND(a,ccy){if(ccy==='VND')return a;if(ccy==='EUR')return a*FX.EURVND;if(ccy==='USD')return a*FX.USDVND;return a;}
   function catById(id){return CATEGORIES.find(c=>c.id===id);}
-  return { FX, CATEGORIES, LOAN_TOTAL_VND, LOAN_SCHEDULE, ENTRIES, MONTHLY_INPUTS, HISTORY, ACCOUNTS, GOALS, MACRO, BRIEFING, NET_WORTH, fmt, toEUR, toUSD, toVND, catById };
+  return { FX, CATEGORIES, LOAN_TOTAL_VND, LOAN_SCHEDULE, ENTRIES, MONTHLY_INPUTS, HISTORY, ACCOUNTS, GOALS, MACRO, BRIEFING, NET_WORTH, BASELINE, fmt, toEUR, toUSD, toVND, catById };
 })();
 </script>
 
@@ -803,11 +803,16 @@ function CashflowChart({ data }) {
   );
 }
 
-function DebtArc() {
-  const remitted=D.LOAN_SCHEDULE.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
-  const accrued=D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+function DebtArc({ loanSchedule }) {
+  const schedule = loanSchedule || D.LOAN_SCHEDULE;
+  const remitted=schedule.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
+  const accrued=schedule.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
   const pctR=remitted/D.LOAN_TOTAL_VND,pctA=(remitted+accrued)/D.LOAN_TOTAL_VND;
   const r=60,c=2*Math.PI*r;
+  // Build account breakdown for set-aside label
+  const acctGroups={};
+  schedule.filter(s=>s.status==='accrued'&&s.acct).forEach(s=>{acctGroups[s.acct]=(acctGroups[s.acct]||0)+s.amount;});
+  const acctLabel=Object.entries(acctGroups).map(([a,v])=>`${a} ${(v/1_000_000).toFixed(0)}M`).join(' · ')||'in BNP + Revolut';
   return (
     <div style={{display:'flex',gap:18,alignItems:'center'}}>
       <svg width="148" height="148" viewBox="-74 -74 148 148">
@@ -825,7 +830,7 @@ function DebtArc() {
         <div>
           <div className="eyebrow" style={{display:'flex',alignItems:'center',gap:5}}><span style={{color:'var(--accent)',opacity:.45}}>●</span> Set aside</div>
           <div className="serif" style={{fontSize:17,color:'var(--ink)'}}>{D.fmt(accrued,'VND',{compact:true})}</div>
-          <div className="ink3" style={{fontSize:11}}>in BNP + Revolut</div>
+          <div className="ink3" style={{fontSize:11}}>{acctLabel}</div>
         </div>
       </div>
     </div>
@@ -877,11 +882,23 @@ function RecentActivity({ allEntries }) {
   );
 }
 
-function AccountsList() {
+function AccountsList({ loanSchedule }) {
+  const schedule = loanSchedule || D.LOAN_SCHEDULE;
   const total=D.ACCOUNTS.reduce((s,a)=>s+D.toEUR(a.balance,a.ccy),0);
+  // Build dynamic notes: which months are set aside in each account
+  function noteFor(accountId) {
+    const acct = accountId === 'bnp' ? 'BNP' : 'Revolut';
+    const months = schedule.filter(s=>s.status==='accrued'&&s.acct===acct);
+    if (!months.length) return null;
+    const total = months.reduce((s,x)=>s+x.amount,0);
+    const labels = months.map(m=>new Date(m.month+'-01').toLocaleDateString('en-GB',{month:'short'})).join(', ');
+    return `${labels} mom payment (${(total/1_000_000).toFixed(0)}M ₫) set aside here`;
+  }
   return (
     <div style={{display:'flex',flexDirection:'column'}}>
-      {D.ACCOUNTS.map(a=>(
+      {D.ACCOUNTS.map(a=>{
+        const dynamicNote = noteFor(a.id);
+        return (
         <div key={a.id} style={{padding:'14px 16px',borderBottom:'1px solid var(--rule)'}}>
           <div className="row-between">
             <div><div style={{fontSize:13,fontWeight:500,color:'var(--ink)'}}>{a.name}</div><div className="ink4" style={{fontSize:11}}>{a.bank} · {a.ccy}</div></div>
@@ -890,9 +907,9 @@ function AccountsList() {
               {a.ccy!=='EUR'&&<div className="ink3" style={{fontSize:11}}>≈ {D.fmt(D.toEUR(a.balance,a.ccy),'EUR',{decimals:0})}</div>}
             </div>
           </div>
-          {a.note&&<div className="serif ink3" style={{fontSize:12,fontStyle:'italic',marginTop:6,lineHeight:1.4}}>{a.note}</div>}
+          {(dynamicNote||a.note)&&<div className="serif ink3" style={{fontSize:12,fontStyle:'italic',marginTop:6,lineHeight:1.4}}>{dynamicNote||a.note}</div>}
         </div>
-      ))}
+      );})}
       <div style={{padding:'14px 16px',background:'var(--panel-2)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <span className="eyebrow">Total (EUR equiv.)</span>
         <span className="serif" style={{fontSize:22}}>€{total.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
@@ -940,12 +957,13 @@ function NetWorthChart({data}) {
   );
 }
 
-function OverviewScreen({ allEntries, monthlyInputs }) {
+function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
   const now = new Date();
   const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const curMonthLabel = now.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
   const entries = allEntries || D.ENTRIES;
   const inputs = monthlyInputs || D.MONTHLY_INPUTS.map(m=>({...m}));
+  const schedule = loanSchedule || D.LOAN_SCHEDULE;
 
   // Live expense from entries for current month
   const curMonthExpense = entries.filter(e=>e.date.startsWith(curMonth)&&e.cat!=='income').reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
@@ -955,22 +973,26 @@ function OverviewScreen({ allEntries, monthlyInputs }) {
   const salaryUSD = curInput?.income_usd||0;
   const salaryEUR = curInput?.income_eur||0;
 
-  // Live mom set-aside from monthlyInputs (all unremitted months)
-  const liveAccrued = inputs.reduce((s,m)=>{
-    const sched = D.LOAN_SCHEDULE.find(x=>x.month===m.month);
-    if (m.mom_set_aside>0 && sched && (sched.status==='accrued'||sched.status==='scheduled')) return s+m.mom_set_aside;
-    return s;
-  },0);
-  const fallbackAccrued = D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
-  const accrued = liveAccrued>0?liveAccrued:fallbackAccrued;
+  // === RUNNING CASH (baseline formula) ===
+  // Baseline: €14,373.06 on 2026-05-29 (actual balance, all history baked in)
+  // + salary received for May 2026 onwards (May still pending at baseline)
+  // − expenses logged with date strictly after baseline date
+  const newIncome = inputs
+    .filter(m => m.month >= '2026-05' && m.income_usd > 0)
+    .reduce((s, m) => s + (m.income_eur || Math.round(m.income_usd / D.FX.EURUSD)), 0);
+  const newExpenses = entries
+    .filter(e => e.date > D.BASELINE.date && e.cat !== 'income')
+    .reduce((s, e) => s + D.toEUR(e.amount, e.ccy), 0);
+  const runningCash = D.BASELINE.cash_eur + newIncome - newExpenses;
 
-  const restingEUR=D.ACCOUNTS.reduce((s,a)=>s+D.toEUR(a.balance,a.ccy),0);
-  const freeCash=restingEUR-D.toEUR(accrued,'VND');
+  // Accurate: only count months marked 'accrued' in the live loan schedule
+  const accrued = schedule.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+  const freeCash = runningCash - D.toEUR(accrued, 'VND');
   const nwDelta=D.NET_WORTH.net-D.NET_WORTH.history[0].val;
   return (
     <div className="screen" style={{gridTemplateColumns:'1fr',gridAutoRows:'auto'}}>
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:1,background:'var(--rule)'}}>
-        <div style={{background:'var(--panel)'}}><KPI label="Cash · all accounts" serif value={`€${restingEUR.toLocaleString('en-US',{maximumFractionDigits:0})}`} sub="BNP + Revolut combined"/></div>
+        <div style={{background:'var(--panel)'}}><KPI label="Total cash · running" serif value={`€${runningCash.toLocaleString('en-US',{maximumFractionDigits:0})}`} sub={`baseline €${D.BASELINE.cash_eur.toLocaleString()} · ${newExpenses>0?`−€${newExpenses.toFixed(0)} new expenses`:'no new expenses since '+D.BASELINE.date}`}/></div>
         <div style={{background:'var(--panel)'}}><KPI label="Free cash (after mom set-aside)" serif value={`€${freeCash.toLocaleString('en-US',{maximumFractionDigits:0})}`} delta={`${D.fmt(accrued,'VND',{compact:true})} earmarked for mom`} deltaDir="flat"/></div>
         <div style={{background:'var(--panel)'}}><KPI label={`${curMonthLabel} expenses to date`} serif value={`€${curMonthExpense.toFixed(0)}`} sub={salaryUSD>0?`salary received · €${salaryEUR.toLocaleString()}`:'salary not yet received'}/></div>
         <div style={{background:'var(--panel)'}}><KPI label="Monthly salary (USD)" serif value={salaryUSD>0?`$${salaryUSD.toLocaleString()}`:'Pending'} sub={salaryUSD>0?`≈ €${salaryEUR.toLocaleString()} this month`:'Expected end of month'} note={salaryUSD===0?'Log salary in Ledger when received':undefined}/></div>
@@ -982,7 +1004,7 @@ function OverviewScreen({ allEntries, monthlyInputs }) {
         </div>
         <div className="panel" style={{borderTop:0,borderBottom:0}}>
           <div className="panel-h"><span className="title">Debt to mom · progress</span><span className="meta">1.5B ₫ total</span></div>
-          <div className="panel-b" style={{display:'flex',justifyContent:'center',padding:18}}><DebtArc/></div>
+          <div className="panel-b" style={{display:'flex',justifyContent:'center',padding:18}}><DebtArc loanSchedule={schedule}/></div>
         </div>
         <div className="panel" style={{borderTop:0,borderBottom:0,borderRight:0}}>
           <div className="panel-h"><span className="title">Today's briefing</span><span className="meta">{D.BRIEFING.date}</span></div>
@@ -1000,7 +1022,7 @@ function OverviewScreen({ allEntries, monthlyInputs }) {
         </div>
         <div className="panel" style={{borderBottom:0}}>
           <div className="panel-h"><span className="title">Accounts</span></div>
-          <div className="panel-b flush"><AccountsList/></div>
+          <div className="panel-b flush"><AccountsList loanSchedule={schedule}/></div>
         </div>
         <div className="panel" style={{borderBottom:0,borderRight:0}}>
           <div className="panel-h"><span className="title">Recent activity</span><div className="actions"><button className="btn">+ Log</button></div></div>
@@ -1060,13 +1082,14 @@ function buildMonths() {
 }
 const MONTHS = buildMonths();
 
-function MonthlyInputs({ selectedMonth, monthlyInputs, updateMonthlyInput }) {
+function MonthlyInputs({ selectedMonth, monthlyInputs, updateMonthlyInput, updateLoanEntry }) {
   const input = monthlyInputs.find(m=>m.month===selectedMonth)||null;
   const history = monthlyInputs.slice().reverse();
   const [showSalary, setShowSalary] = React.useState(false);
   const [showMom, setShowMom] = React.useState(false);
   const [salaryVal, setSalaryVal] = React.useState('');
   const [momVal, setMomVal] = React.useState('');
+  const [momAcct, setMomAcct] = React.useState('BNP');
 
   function submitSalary() {
     const v = parseFloat(salaryVal);
@@ -1079,6 +1102,8 @@ function MonthlyInputs({ selectedMonth, monthlyInputs, updateMonthlyInput }) {
     const v = parseFloat(momVal);
     if (!v || v <= 0) return;
     updateMonthlyInput(selectedMonth, 'mom_set_aside', v * 1_000_000);
+    // Update loan schedule: mark this month as accrued with chosen account
+    if (updateLoanEntry) updateLoanEntry(selectedMonth, { status: 'accrued', amount: v * 1_000_000, acct: momAcct });
     setMomVal(''); setShowMom(false);
   }
 
@@ -1152,10 +1177,15 @@ function MonthlyInputs({ selectedMonth, monthlyInputs, updateMonthlyInput }) {
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
             <input className="field" type="number" step="1" min="0" placeholder="70" value={momVal} onChange={e=>setMomVal(e.target.value)} style={{flex:1}} autoFocus onKeyDown={e=>e.key==='Enter'&&submitMom()}/>
             <span style={{fontSize:12,color:'var(--ink-3)',fontFamily:'var(--mono)',whiteSpace:'nowrap'}}>M ₫</span>
+            <select className="field" value={momAcct} onChange={e=>setMomAcct(e.target.value)} style={{width:110,height:32}}>
+              <option value="BNP">BNP Paribas</option>
+              <option value="Revolut">Revolut</option>
+              <option value="Other">Other</option>
+            </select>
             <button className="btn primary" onClick={submitMom}>Save</button>
             <button className="btn" onClick={()=>{setShowMom(false);setMomVal('');}}>✕</button>
           </div>
-          {momVal&&parseFloat(momVal)>0&&<div className="ink3" style={{fontSize:11}}>≈ €{D.toEUR(parseFloat(momVal)*1_000_000,'VND').toFixed(0)} at current EUR/VND rate</div>}
+          {momVal&&parseFloat(momVal)>0&&<div className="ink3" style={{fontSize:11}}>≈ €{D.toEUR(parseFloat(momVal)*1_000_000,'VND').toFixed(0)} · will mark {MONTHS.find(m=>m.value===selectedMonth)?.label} as set aside in {momAcct}</div>}
         </div>
       )}
       <div style={{padding:'12px 20px',background:'var(--panel-2)',borderTop:'1px solid var(--rule)',display:'flex',gap:8}}>
@@ -1298,7 +1328,7 @@ function SpendingCheck({ selectedMonth }) {
   );
 }
 
-function LedgerScreen({ allEntries, onAdd, monthlyInputs, updateMonthlyInput }) {
+function LedgerScreen({ allEntries, onAdd, monthlyInputs, updateMonthlyInput, loanSchedule, updateLoanEntry }) {
   const now = new Date();
   const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const [selectedMonth,setSelectedMonth]=useState(MONTHS[0]?.value||curMonth);
@@ -1327,7 +1357,7 @@ function LedgerScreen({ allEntries, onAdd, monthlyInputs, updateMonthlyInput }) 
             {MONTHS.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
           </select>
         </div>
-        <MonthlyInputs selectedMonth={selectedMonth} monthlyInputs={safeInputs} updateMonthlyInput={updateMonthlyInput}/>
+        <MonthlyInputs selectedMonth={selectedMonth} monthlyInputs={safeInputs} updateMonthlyInput={updateMonthlyInput} updateLoanEntry={updateLoanEntry}/>
       </div>
       <div className="panel" style={{borderTop:0,borderRight:0,borderBottom:0,display:'flex',flexDirection:'column',overflow:'hidden'}}>
         <div className="panel-h">
@@ -2013,8 +2043,14 @@ function App() {
   const [monthlyInputs,setMonthlyInputs] = useState(()=>{
     try{const s=localStorage.getItem('meridian_monthly_inputs');return s?JSON.parse(s):D.MONTHLY_INPUTS.map(m=>({...m}));}catch{return D.MONTHLY_INPUTS.map(m=>({...m}));}
   });
+  const [loanSchedule,setLoanSchedule] = useState(()=>{
+    try{const s=localStorage.getItem('meridian_loan_schedule');return s?JSON.parse(s):D.LOAN_SCHEDULE.map(m=>({...m}));}catch{return D.LOAN_SCHEDULE.map(m=>({...m}));}
+  });
+  // One-time migration: if monthlyInputs has Nov/Dec/Jan with mom_set_aside > 0 but those are 'remitted',
+  // the stale localStorage data is fine — the free cash now correctly reads from loanSchedule only.
   function onAdd(entry){setAllEntries(s=>{const n=[entry,...s];try{localStorage.setItem('meridian_entries',JSON.stringify(n));}catch{}return n;});}
   function updateMonthlyInput(month,key,value){setMonthlyInputs(prev=>{const n=prev.map(m=>m.month===month?{...m,[key]:value}:m);try{localStorage.setItem('meridian_monthly_inputs',JSON.stringify(n));}catch{}return n;});}
+  function updateLoanEntry(month,updates){setLoanSchedule(prev=>{const existing=prev.find(m=>m.month===month);let n;if(existing){n=prev.map(m=>m.month===month?{...m,...updates}:m);}else{n=[...prev,{month,amount:70_000_000,...updates}];}try{localStorage.setItem('meridian_loan_schedule',JSON.stringify(n));}catch{}return n;});}
 
   useEffect(()=>{document.documentElement.dataset.theme=tweaks.theme;document.documentElement.dataset.density=tweaks.density;},[tweaks.theme,tweaks.density]);
   useEffect(()=>{document.documentElement.style.setProperty('--accent',tweaks.accent);},[tweaks.accent]);
@@ -2031,7 +2067,7 @@ function App() {
     return()=>clearInterval(t);
   },[]);
 
-  const sharedProps={allEntries,onAdd,monthlyInputs,updateMonthlyInput};
+  const sharedProps={allEntries,onAdd,monthlyInputs,updateMonthlyInput,loanSchedule,updateLoanEntry};
   const ScreenComp = useMemo(()=>({overview:window.OverviewScreen,ledger:window.LedgerScreen,debt:window.DebtScreen,goals:window.GoalsScreen,advisor:window.AdvisorScreen,macro:window.MacroScreen}[screen]),[screen]);
 
   return (
