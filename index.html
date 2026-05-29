@@ -883,9 +883,9 @@ function RecentActivity({ allEntries }) {
   );
 }
 
-function AccountsList({ loanSchedule }) {
+function AccountsList({ loanSchedule, runningCash }) {
   const schedule = loanSchedule || D.LOAN_SCHEDULE;
-  const total=D.ACCOUNTS.reduce((s,a)=>s+D.toEUR(a.balance,a.ccy),0);
+  const total = runningCash || D.ACCOUNTS.reduce((s,a)=>s+D.toEUR(a.balance,a.ccy),0);
   // Build dynamic notes: which months are set aside in each account
   function noteFor(accountId) {
     const acct = accountId === 'bnp' ? 'BNP' : 'Revolut';
@@ -1047,7 +1047,7 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
         </div>
         <div className="panel" style={{borderBottom:0}}>
           <div className="panel-h"><span className="title">Accounts</span></div>
-          <div className="panel-b flush"><AccountsList loanSchedule={schedule}/></div>
+          <div className="panel-b flush"><AccountsList loanSchedule={schedule} runningCash={runningCash}/></div>
         </div>
         <div className="panel" style={{borderBottom:0,borderRight:0}}>
           <div className="panel-h"><span className="title">Recent activity</span><div className="actions"><button className="btn">+ Log</button></div></div>
@@ -1056,19 +1056,19 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
       </div>
       <div className="panel" style={{border:0}}>
         <div className="panel-h">
-          <span className="title">Net worth trajectory · Nov '25 — May '26</span>
+          <span className="title">Net worth trajectory · Nov '25 — today</span>
           <span className="badge up">+€{Math.round(nwDelta/1000)}k improvement since Nov '25</span>
           <span className="meta">Still negative · turns positive after debt-free (Jun '27)</span>
         </div>
         <div className="panel-b" style={{display:'flex',gap:24,alignItems:'center'}}>
           <div style={{flex:1}}><NetWorthChart data={D.NET_WORTH.history}/></div>
           <div style={{width:240,display:'flex',flexDirection:'column',gap:12}}>
-            <div><div className="eyebrow">Assets</div><div className="serif" style={{fontSize:22,color:'var(--up)'}}>{D.fmt(D.NET_WORTH.assets,'EUR',{decimals:0})}</div></div>
-            <div><div className="eyebrow">Liabilities (debt remaining)</div><div className="serif" style={{fontSize:22,color:'var(--down)'}}>{D.fmt(D.NET_WORTH.liabilities,'EUR',{decimals:0})}</div></div>
+            <div><div className="eyebrow">Assets (running cash)</div><div className="serif" style={{fontSize:22,color:'var(--up)'}}>€{runningCash.toLocaleString('en-US',{maximumFractionDigits:0})}</div></div>
+            <div><div className="eyebrow">Liabilities (debt not yet committed)</div><div className="serif" style={{fontSize:22,color:'var(--down)'}}>€{D.toEUR(D.LOAN_TOTAL_VND-accrued-schedule.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0),'VND').toLocaleString('en-US',{maximumFractionDigits:0})}</div></div>
             <div style={{borderTop:'1px solid var(--rule)',paddingTop:12}}>
               <div className="eyebrow">Net</div>
-              <div className="serif" style={{fontSize:26,color:'var(--ink)'}}>{D.fmt(D.NET_WORTH.net,'EUR',{decimals:0,sign:true})}</div>
-              <div className="ink3" style={{fontSize:11,marginTop:4}}>Improving ~€{Math.round(Math.abs(nwDelta)/7)}k/month</div>
+              <div className="serif" style={{fontSize:26,color:'var(--ink)'}}>{(runningCash-D.toEUR(D.LOAN_TOTAL_VND-accrued-schedule.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0),'VND'))>=0?'+':''}€{(runningCash-D.toEUR(D.LOAN_TOTAL_VND-accrued-schedule.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0),'VND')).toLocaleString('en-US',{maximumFractionDigits:0})}</div>
+              <div className="ink3" style={{fontSize:11,marginTop:4}}>Improving as debt is paid down</div>
             </div>
           </div>
         </div>
@@ -1557,7 +1557,7 @@ function ScheduleTable({ sched }) {
 function DebtStats({ sched }) {
   const remitted=sched.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
   const accrued=sched.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
-  const remaining=D.LOAN_TOTAL_VND-remitted;
+  const remaining=D.LOAN_TOTAL_VND-remitted-accrued;
   const n=sched.filter(s=>s.status==='remitted').length,avg=n>0?remitted/n:0;
   const acctGroups={};
   sched.filter(s=>s.status==='accrued'&&s.acct).forEach(s=>{acctGroups[s.acct]=(acctGroups[s.acct]||0)+s.amount;});
@@ -1588,7 +1588,7 @@ function DebtScreen({ loanSchedule }) {
   const sched = loanSchedule || D.LOAN_SCHEDULE;
   const remitted=sched.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
   const accrued=sched.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
-  const covered=remitted+accrued,remaining=D.LOAN_TOTAL_VND-remitted;
+  const covered=remitted+accrued,remaining=D.LOAN_TOTAL_VND-remitted-accrued;
   const pctCovered=(covered/D.LOAN_TOTAL_VND*100).toFixed(0),pctSent=(remitted/D.LOAN_TOTAL_VND*100).toFixed(0);
   const monthsLeft=sched.filter(s=>s.status==='scheduled'||s.status==='projected').length;
   return (
