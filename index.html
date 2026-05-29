@@ -1961,7 +1961,7 @@ function SideNav({ screen, setScreen }) {
 }
 
 function App() {
-  const tweakDefaults = { theme:'dark', density:'normal', accent:'#D07090', uiFont:'Geist', dataFont:'JetBrains Mono', serifFont:'Newsreader', advisorTone:'Calm & analytical', chartStyle:'lines', layout:'panels' };
+  const tweakDefaults = { theme:'light', density:'normal', accent:'#D07090', uiFont:'Geist', dataFont:'JetBrains Mono', serifFont:'Newsreader', advisorTone:'Calm & analytical', chartStyle:'lines', layout:'panels' };
   const [tweaks,setTweak] = window.useTweaks(tweakDefaults);
   const [screen,setScreen] = useState('overview');
   const [now,setNow] = useState('');
