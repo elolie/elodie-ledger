@@ -1419,14 +1419,14 @@ const D = window.MERIDIAN_DATA;
 const STATUS_COLOR = { remitted:'var(--accent)', accrued:'color-mix(in oklab,var(--accent) 45%,var(--bg-1))', scheduled:'var(--rule-2)', projected:'var(--rule)' };
 const STATUS_LABEL = { remitted:'Sent to mom', accrued:'Set aside', scheduled:'Scheduled', projected:'Projected' };
 
-function PaymentTimeline() {
-  const maxA=Math.max(...D.LOAN_SCHEDULE.map(s=>s.amount));
+function PaymentTimeline({ sched }) {
+  const maxA=Math.max(...sched.map(s=>s.amount));
   return (
     <div style={{display:'flex',flexDirection:'column',gap:8}}>
       <div style={{display:'flex',alignItems:'flex-end',gap:3,height:100}}>
-        {D.LOAN_SCHEDULE.map((s,i)=>{
+        {sched.map((s,i)=>{
           const h=(s.amount/maxA)*100;
-          const isNow=i===D.LOAN_SCHEDULE.filter(x=>x.status==='remitted'||x.status==='accrued').length-1;
+          const isNow=i===sched.filter(x=>x.status==='remitted'||x.status==='accrued').length-1;
           return (
             <div key={s.month} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',position:'relative',height:'100%'}}>
               {isNow&&<div style={{position:'absolute',top:-20,left:'50%',transform:'translateX(-50%)',fontFamily:'var(--sans)',fontSize:9,color:'var(--accent)',whiteSpace:'nowrap',fontWeight:500}}>▼ now</div>}
@@ -1436,7 +1436,7 @@ function PaymentTimeline() {
         })}
       </div>
       <div style={{display:'flex',gap:3}}>
-        {D.LOAN_SCHEDULE.map(s=>(
+        {sched.map(s=>(
           <div key={s.month} style={{flex:1,textAlign:'center',fontSize:8.5,color:'var(--ink-4)',fontFamily:'var(--sans)',lineHeight:1.2}}>
             {new Date(s.month+'-01').toLocaleDateString('en-GB',{month:'short'})}<br/><span style={{fontSize:8}}>{s.month.slice(2,4)}</span>
           </div>
@@ -1453,14 +1453,14 @@ function PaymentTimeline() {
   );
 }
 
-function RetirementCurve() {
+function RetirementCurve({ sched }) {
   const W=440,H=200,padL=46,padR=16,padT=16,padB=28;
-  const iW=W-padL-padR,iH=H-padT-padB,total=D.LOAN_TOTAL_VND,xStep=iW/D.LOAN_SCHEDULE.length;
+  const iW=W-padL-padR,iH=H-padT-padB,total=D.LOAN_TOTAL_VND,xStep=iW/sched.length;
   let cum=0;
-  const points=D.LOAN_SCHEDULE.map((s,i)=>{cum+=s.amount;return{x:padL+(i+1)*xStep,y:padT+iH-(cum/total)*iH,status:s.status};});
+  const points=sched.map((s,i)=>{cum+=s.amount;return{x:padL+(i+1)*xStep,y:padT+iH-(cum/total)*iH,status:s.status};});
   const fullPath=`M ${padL} ${padT+iH} `+points.map(p=>`L ${p.x} ${p.y}`).join(' ');
   const area=fullPath+` L ${points[points.length-1].x} ${padT+iH} Z`;
-  const splitIdx=D.LOAN_SCHEDULE.reduce((acc,s,i)=>(s.status==='remitted'||s.status==='accrued')?i:acc,-1);
+  const splitIdx=sched.reduce((acc,s,i)=>(s.status==='remitted'||s.status==='accrued')?i:acc,-1);
   const splitX=splitIdx>=0?points[splitIdx].x:padL;
   const solidPath=`M ${padL} ${padT+iH} `+points.slice(0,splitIdx+1).map(p=>`L ${p.x} ${p.y}`).join(' ');
   const dashPath=`M ${points[splitIdx]?.x||padL} ${points[splitIdx]?.y||padT+iH} `+points.slice(splitIdx+1).map(p=>`L ${p.x} ${p.y}`).join(' ');
@@ -1474,7 +1474,7 @@ function RetirementCurve() {
       ))}
       <path d={area} fill="var(--accent)" opacity="0.10"/>
       {splitIdx>=0&&<path d={solidPath} stroke="var(--accent)" strokeWidth="2" fill="none"/>}
-      {splitIdx<D.LOAN_SCHEDULE.length-1&&<path d={dashPath} stroke="var(--accent)" strokeWidth="1.5" fill="none" strokeDasharray="4 3"/>}
+      {splitIdx<sched.length-1&&<path d={dashPath} stroke="var(--accent)" strokeWidth="1.5" fill="none" strokeDasharray="4 3"/>}
       {splitIdx>=0&&<><line x1={splitX} y1={padT} x2={splitX} y2={padT+iH} stroke="var(--ink-4)" strokeDasharray="2 3"/><text x={splitX+5} y={padT+14} fontSize="9" fill="var(--ink-3)" fontFamily="var(--sans)">Now</text></>}
       <circle cx={points[points.length-1].x} cy={padT} r="3" fill="var(--up)"/>
       <text x={points[points.length-1].x-6} y={padT+4} fontSize="9" fill="var(--up)" textAnchor="end" fontFamily="var(--sans)">Jun '27</text>
@@ -1482,15 +1482,15 @@ function RetirementCurve() {
   );
 }
 
-function WhatIf() {
+function WhatIf({ sched }) {
   const [extra,setExtra]=useState(0);
-  const remitted=D.LOAN_SCHEDULE.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
-  const accrued=D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+  const remitted=sched.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
+  const accrued=sched.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
   const remaining=D.LOAN_TOTAL_VND-remitted-accrued;
   const baseMonthly=73_000_000,baseMonths=Math.ceil(remaining/baseMonthly);
   const newMonthly=baseMonthly+extra*1_000_000,newMonths=Math.ceil(remaining/newMonthly);
   const saved=baseMonths-newMonths;
-  const today=new Date(2026,4,27);
+  const today=new Date();
   const freeDate=new Date(today.getFullYear(),today.getMonth()+newMonths,1);
   const dfStr=freeDate.toLocaleDateString('en-GB',{month:'short',year:'2-digit'}).toUpperCase();
   return (
@@ -1515,7 +1515,7 @@ function WhatIf() {
         </div>
       </div>
       <div className="serif" style={{fontSize:13,lineHeight:1.6,color:'var(--ink-2)',fontStyle:'italic',borderLeft:'2px solid var(--accent)',paddingLeft:12}}>
-        {extra===0&&"On schedule — June 2027. Your free cash after remitting the accruals stays around €7k, which is your safe floor."}
+        {extra===0&&"On schedule. Your free cash after remitting the accruals stays around €7k, which is your safe floor."}
         {extra>0&&extra<=10&&`Modest acceleration — ${saved} month${saved!==1?'s':''} earlier with minimal pressure on your buffer.`}
         {extra>10&&extra<=20&&"Meaningful gain — check that wedding savings aren't squeezed too hard. Run this past the advisor."}
         {extra>20&&"Aggressive. Only worth it in months with bonus income or when EUR/VND is unusually favorable."}
@@ -1524,13 +1524,13 @@ function WhatIf() {
   );
 }
 
-function ScheduleTable() {
+function ScheduleTable({ sched }) {
   let cum=0;
   return (
     <table className="ledger">
       <thead><tr><th>Month</th><th>Status</th><th style={{width:60}}>Account</th><th className="r">Amount (VND)</th><th className="r">Cumulative</th><th className="r">% of total</th><th className="r">Remaining</th></tr></thead>
       <tbody>
-        {D.LOAN_SCHEDULE.map(s=>{
+        {sched.map(s=>{
           cum+=s.amount;const pct=(cum/D.LOAN_TOTAL_VND)*100,rem=D.LOAN_TOTAL_VND-cum;
           return(
             <tr key={s.month}>
@@ -1554,15 +1554,18 @@ function ScheduleTable() {
   );
 }
 
-function DebtStats() {
-  const remitted=D.LOAN_SCHEDULE.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
-  const accrued=D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+function DebtStats({ sched }) {
+  const remitted=sched.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
+  const accrued=sched.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
   const remaining=D.LOAN_TOTAL_VND-remitted;
-  const n=D.LOAN_SCHEDULE.filter(s=>s.status==='remitted').length,avg=n>0?remitted/n:0;
+  const n=sched.filter(s=>s.status==='remitted').length,avg=n>0?remitted/n:0;
+  const acctGroups={};
+  sched.filter(s=>s.status==='accrued'&&s.acct).forEach(s=>{acctGroups[s.acct]=(acctGroups[s.acct]||0)+s.amount;});
+  const acctSub=Object.entries(acctGroups).map(([a,v])=>`${a} ${(v/1_000_000).toFixed(0)}M`).join(' · ')||'in accounts';
   const items=[
     {lbl:'Total principal',val:'1.5B ₫',sub:"Master's degree · 0% · invested by mom"},
     {lbl:'Sent to mom',val:D.fmt(remitted,'VND',{compact:true}),sub:`${n} months · Nov '25 → Jan '26`},
-    {lbl:'Set aside (not sent)',val:D.fmt(accrued,'VND',{compact:true}),sub:`Feb–Apr in BNP & Revolut · ≈ €${D.toEUR(accrued,'VND').toFixed(0)}`},
+    {lbl:'Set aside (not sent)',val:D.fmt(accrued,'VND',{compact:true}),sub:`${acctSub} · ≈ €${D.toEUR(accrued,'VND').toFixed(0)}`},
     {lbl:'True remaining',val:D.fmt(remaining,'VND',{compact:true}),sub:`≈ €${D.toEUR(remaining,'VND').toFixed(0)} at today's rate`},
     {lbl:'Average sent/mo',val:D.fmt(avg,'VND',{compact:true}),sub:`≈ €${D.toEUR(avg,'VND').toFixed(0)}/month`},
     {lbl:'Interest paid',val:'₫ 0',sub:'Mom invested, not lent'},
@@ -1581,12 +1584,13 @@ function DebtStats() {
   );
 }
 
-function DebtScreen() {
-  const remitted=D.LOAN_SCHEDULE.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
-  const accrued=D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+function DebtScreen({ loanSchedule }) {
+  const sched = loanSchedule || D.LOAN_SCHEDULE;
+  const remitted=sched.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
+  const accrued=sched.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
   const covered=remitted+accrued,remaining=D.LOAN_TOTAL_VND-remitted;
   const pctCovered=(covered/D.LOAN_TOTAL_VND*100).toFixed(0),pctSent=(remitted/D.LOAN_TOTAL_VND*100).toFixed(0);
-  const monthsLeft=D.LOAN_SCHEDULE.filter(s=>s.status==='scheduled'||s.status==='projected').length;
+  const monthsLeft=sched.filter(s=>s.status==='scheduled'||s.status==='projected').length;
   return (
     <div className="screen" style={{gridTemplateColumns:'1fr',background:'var(--rule)'}}>
       <div style={{background:'var(--panel)',padding:'22px 26px',display:'flex',flexDirection:'column',gap:20}}>
@@ -1614,25 +1618,25 @@ function DebtScreen() {
             </div>
           </div>
         </div>
-        <PaymentTimeline/>
+        <PaymentTimeline sched={sched}/>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:1,background:'var(--rule)'}}>
         <div className="panel" style={{borderLeft:0,borderBottom:0}}>
           <div className="panel-h"><span className="title">Retirement curve</span><span className="meta">Cumulative % of 1.5B ₫</span></div>
-          <div className="panel-b"><RetirementCurve/></div>
+          <div className="panel-b"><RetirementCurve sched={sched}/></div>
         </div>
         <div className="panel" style={{borderBottom:0}}>
           <div className="panel-h"><span className="title">What if I paid more?</span></div>
-          <WhatIf/>
+          <WhatIf sched={sched}/>
         </div>
         <div className="panel" style={{borderRight:0,borderBottom:0,overflow:'auto'}}>
           <div className="panel-h"><span className="title">Key facts</span></div>
-          <DebtStats/>
+          <DebtStats sched={sched}/>
         </div>
       </div>
       <div className="panel" style={{border:0}}>
         <div className="panel-h"><span className="title">Payment schedule</span><span className="meta">Nov '25 — Jun '27</span><div className="actions"><button className="btn primary">+ Log payment</button></div></div>
-        <div className="panel-b flush"><ScheduleTable/></div>
+        <div className="panel-b flush"><ScheduleTable sched={sched}/></div>
       </div>
     </div>
   );
@@ -2092,7 +2096,20 @@ function App() {
     return()=>clearInterval(t);
   },[]);
 
-  const sharedProps={allEntries,onAdd,monthlyInputs,updateMonthlyInput,loanSchedule,updateLoanEntry};
+  // Effective schedule: merge loanSchedule + monthlyInputs
+  // If a month has mom_set_aside > 0 in monthlyInputs but is still 'scheduled' in loanSchedule,
+  // treat it as 'accrued' so all components stay in sync
+  const effectiveSchedule = useMemo(()=>loanSchedule.map(s=>{
+    if (s.status==='scheduled'||s.status==='projected') {
+      const inp = monthlyInputs.find(m=>m.month===s.month);
+      if (inp && inp.mom_set_aside>0) {
+        return {...s, status:'accrued', amount:inp.mom_set_aside, acct:inp.acct||s.acct||'Revolut'};
+      }
+    }
+    return s;
+  }),[loanSchedule,monthlyInputs]);
+
+  const sharedProps={allEntries,onAdd,monthlyInputs,updateMonthlyInput,loanSchedule:effectiveSchedule,updateLoanEntry};
   const ScreenComp = useMemo(()=>({overview:window.OverviewScreen,ledger:window.LedgerScreen,debt:window.DebtScreen,goals:window.GoalsScreen,advisor:window.AdvisorScreen,macro:window.MacroScreen}[screen]),[screen]);
 
   return (
