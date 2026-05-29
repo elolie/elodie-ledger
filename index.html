@@ -832,9 +832,12 @@ function DebtArc() {
   );
 }
 
-function CategoryBars() {
+function CategoryBars({ allEntries }) {
+  const entries = allEntries || D.ENTRIES;
+  const now = new Date();
+  const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const sums={};
-  D.ENTRIES.filter(e=>e.date.startsWith('2026-05')).forEach(e=>{sums[e.cat]=(sums[e.cat]||0)+D.toEUR(e.amount,e.ccy);});
+  entries.filter(e=>e.date.startsWith(curMonth)).forEach(e=>{sums[e.cat]=(sums[e.cat]||0)+D.toEUR(e.amount,e.ccy);});
   const total=Object.values(sums).reduce((a,b)=>a+b,0);
   const cats=[{id:'an_uong',color:'#6FB983'},{id:'must_have',color:'#5891D9'},{id:'optional',color:'#C284E8'},{id:'khac',color:'#E8A33D'}];
   return (
@@ -855,8 +858,8 @@ function CategoryBars() {
   );
 }
 
-function RecentActivity() {
-  const recent=[...D.ENTRIES].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+function RecentActivity({ allEntries }) {
+  const recent=[...(allEntries||D.ENTRIES)].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
   return (
     <table className="ledger">
       <thead><tr><th style={{width:90}}>Date</th><th>Item</th><th>Category</th><th className="r">Amount</th></tr></thead>
@@ -937,19 +940,40 @@ function NetWorthChart({data}) {
   );
 }
 
-function OverviewScreen() {
+function OverviewScreen({ allEntries, monthlyInputs }) {
+  const now = new Date();
+  const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const curMonthLabel = now.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  const entries = allEntries || D.ENTRIES;
+  const inputs = monthlyInputs || D.MONTHLY_INPUTS.map(m=>({...m}));
+
+  // Live expense from entries for current month
+  const curMonthExpense = entries.filter(e=>e.date.startsWith(curMonth)&&e.cat!=='income').reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
+
+  // Live salary from monthlyInputs
+  const curInput = inputs.find(m=>m.month===curMonth);
+  const salaryUSD = curInput?.income_usd||0;
+  const salaryEUR = curInput?.income_eur||0;
+
+  // Live mom set-aside from monthlyInputs (all unremitted months)
+  const liveAccrued = inputs.reduce((s,m)=>{
+    const sched = D.LOAN_SCHEDULE.find(x=>x.month===m.month);
+    if (m.mom_set_aside>0 && sched && (sched.status==='accrued'||sched.status==='scheduled')) return s+m.mom_set_aside;
+    return s;
+  },0);
+  const fallbackAccrued = D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
+  const accrued = liveAccrued>0?liveAccrued:fallbackAccrued;
+
   const restingEUR=D.ACCOUNTS.reduce((s,a)=>s+D.toEUR(a.balance,a.ccy),0);
-  const accrued=D.LOAN_SCHEDULE.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
   const freeCash=restingEUR-D.toEUR(accrued,'VND');
-  const mayExpense=D.HISTORY[D.HISTORY.length-1].expense;
   const nwDelta=D.NET_WORTH.net-D.NET_WORTH.history[0].val;
   return (
     <div className="screen" style={{gridTemplateColumns:'1fr',gridAutoRows:'auto'}}>
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:1,background:'var(--rule)'}}>
         <div style={{background:'var(--panel)'}}><KPI label="Cash · all accounts" serif value={`€${restingEUR.toLocaleString('en-US',{maximumFractionDigits:0})}`} sub="BNP + Revolut combined"/></div>
         <div style={{background:'var(--panel)'}}><KPI label="Free cash (after mom set-aside)" serif value={`€${freeCash.toLocaleString('en-US',{maximumFractionDigits:0})}`} delta={`${D.fmt(accrued,'VND',{compact:true})} earmarked for mom`} deltaDir="flat"/></div>
-        <div style={{background:'var(--panel)'}}><KPI label="May expenses · through 25th" serif value={`€${mayExpense.toFixed(0)}`} sub="salary not yet received" note="Nha Trang + B2 course are one-offs"/></div>
-        <div style={{background:'var(--panel)'}}><KPI label="Monthly salary (USD)" serif value="$3,850" sub="Dec 2025 was $3,675 · May pending" note="≈ €3,540 at current rate"/></div>
+        <div style={{background:'var(--panel)'}}><KPI label={`${curMonthLabel} expenses to date`} serif value={`€${curMonthExpense.toFixed(0)}`} sub={salaryUSD>0?`salary received · €${salaryEUR.toLocaleString()}`:'salary not yet received'}/></div>
+        <div style={{background:'var(--panel)'}}><KPI label="Monthly salary (USD)" serif value={salaryUSD>0?`$${salaryUSD.toLocaleString()}`:'Pending'} sub={salaryUSD>0?`≈ €${salaryEUR.toLocaleString()} this month`:'Expected end of month'} note={salaryUSD===0?'Log salary in Ledger when received':undefined}/></div>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr 1.3fr',gap:1,background:'var(--rule)'}}>
         <div className="panel" style={{borderTop:0,borderLeft:0,borderBottom:0}}>
@@ -971,8 +995,8 @@ function OverviewScreen() {
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1.1fr 1.6fr',gap:1,background:'var(--rule)'}}>
         <div className="panel" style={{borderBottom:0,borderLeft:0}}>
-          <div className="panel-h"><span className="title">May spending · by category</span><span className="meta">€{mayExpense.toFixed(0)}</span></div>
-          <div className="panel-b"><CategoryBars/></div>
+          <div className="panel-h"><span className="title">{curMonthLabel} spending · by category</span><span className="meta">€{curMonthExpense.toFixed(0)}</span></div>
+          <div className="panel-b"><CategoryBars allEntries={entries}/></div>
         </div>
         <div className="panel" style={{borderBottom:0}}>
           <div className="panel-h"><span className="title">Accounts</span></div>
@@ -980,7 +1004,7 @@ function OverviewScreen() {
         </div>
         <div className="panel" style={{borderBottom:0,borderRight:0}}>
           <div className="panel-h"><span className="title">Recent activity</span><div className="actions"><button className="btn">+ Log</button></div></div>
-          <div className="panel-b flush"><RecentActivity/></div>
+          <div className="panel-b flush"><RecentActivity allEntries={entries}/></div>
         </div>
       </div>
       <div className="panel" style={{border:0}}>
@@ -1016,15 +1040,25 @@ window.OverviewScreen = OverviewScreen;
 const { useMemo, useState } = React;
 const D = window.MERIDIAN_DATA;
 
-const MONTHS = [
-  { value:'2026-05', label:'May 2026' },
-  { value:'2026-04', label:'Apr 2026' },
-  { value:'2026-03', label:'Mar 2026' },
-  { value:'2026-02', label:'Feb 2026' },
-  { value:'2026-01', label:'Jan 2026' },
-  { value:'2025-12', label:'Dec 2025' },
-  { value:'2025-11', label:'Nov 2025' },
-];
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function buildMonths() {
+  const now = new Date();
+  const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const base = [
+    { value:'2026-05', label:'May 2026' },
+    { value:'2026-04', label:'Apr 2026' },
+    { value:'2026-03', label:'Mar 2026' },
+    { value:'2026-02', label:'Feb 2026' },
+    { value:'2026-01', label:'Jan 2026' },
+    { value:'2025-12', label:'Dec 2025' },
+    { value:'2025-11', label:'Nov 2025' },
+  ];
+  if (!base.find(m=>m.value===cur)) {
+    base.unshift({ value:cur, label:`${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}` });
+  }
+  return base;
+}
+const MONTHS = buildMonths();
 
 function MonthlyInputs({ selectedMonth, monthlyInputs, updateMonthlyInput }) {
   const input = monthlyInputs.find(m=>m.month===selectedMonth)||null;
@@ -1264,21 +1298,23 @@ function SpendingCheck({ selectedMonth }) {
   );
 }
 
-function LedgerScreen() {
-  const [selectedMonth,setSelectedMonth]=useState('2026-05');
-  const [allEntries,setAllEntries]=useState(()=>{
-    try{const s=localStorage.getItem('meridian_entries');return s?JSON.parse(s):D.ENTRIES;}catch{return D.ENTRIES;}
-  });
-  const [monthlyInputs,setMonthlyInputs]=useState(()=>{
-    try{const s=localStorage.getItem('meridian_monthly_inputs');return s?JSON.parse(s):D.MONTHLY_INPUTS.map(m=>({...m}));}catch{return D.MONTHLY_INPUTS.map(m=>({...m}));}
-  });
+function LedgerScreen({ allEntries, onAdd, monthlyInputs, updateMonthlyInput }) {
+  const now = new Date();
+  const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const [selectedMonth,setSelectedMonth]=useState(MONTHS[0]?.value||curMonth);
   const expCats=D.CATEGORIES.filter(c=>c.id!=='income'&&c.id!=='me');
   const [activeCats,setActiveCats]=useState(expCats.map(c=>c.id));
   const [displayCcy,setDisplayCcy]=useState('EUR');
   const [query,setQuery]=useState('');
   function toggleCat(id){setActiveCats(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id]);}
-  function onAdd(entry){setAllEntries(s=>{const n=[entry,...s];try{localStorage.setItem('meridian_entries',JSON.stringify(n));}catch{}return n;});}
-  function updateMonthlyInput(month,key,value){setMonthlyInputs(prev=>{const n=prev.map(m=>m.month===month?{...m,[key]:value}:m);try{localStorage.setItem('meridian_monthly_inputs',JSON.stringify(n));}catch{}return n;});}
+  // Ensure current month has an entry in monthlyInputs
+  const safeInputs = useMemo(()=>{
+    if (!monthlyInputs.find(m=>m.month===curMonth)) {
+      return [...monthlyInputs, {month:curMonth,income_usd:0,income_eur:0,mom_set_aside:0}];
+    }
+    return monthlyInputs;
+  },[monthlyInputs,curMonth]);
+
   const filtered=useMemo(()=>allEntries.filter(e=>e.date.startsWith(selectedMonth)&&activeCats.includes(e.cat)&&(!query||e.label.toLowerCase().includes(query.toLowerCase()))),[allEntries,selectedMonth,activeCats,query]);
   const totalEUR=filtered.reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
   const monthLabel=MONTHS.find(m=>m.value===selectedMonth)?.label||selectedMonth;
@@ -1291,7 +1327,7 @@ function LedgerScreen() {
             {MONTHS.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
           </select>
         </div>
-        <MonthlyInputs selectedMonth={selectedMonth} monthlyInputs={monthlyInputs} updateMonthlyInput={updateMonthlyInput}/>
+        <MonthlyInputs selectedMonth={selectedMonth} monthlyInputs={safeInputs} updateMonthlyInput={updateMonthlyInput}/>
       </div>
       <div className="panel" style={{borderTop:0,borderRight:0,borderBottom:0,display:'flex',flexDirection:'column',overflow:'hidden'}}>
         <div className="panel-h">
@@ -1970,11 +2006,32 @@ function App() {
   const [screen,setScreen] = useState('overview');
   const [now,setNow] = useState('');
 
+  // Shared state lifted so Overview + Ledger stay in sync
+  const [allEntries,setAllEntries] = useState(()=>{
+    try{const s=localStorage.getItem('meridian_entries');return s?JSON.parse(s):D.ENTRIES;}catch{return D.ENTRIES;}
+  });
+  const [monthlyInputs,setMonthlyInputs] = useState(()=>{
+    try{const s=localStorage.getItem('meridian_monthly_inputs');return s?JSON.parse(s):D.MONTHLY_INPUTS.map(m=>({...m}));}catch{return D.MONTHLY_INPUTS.map(m=>({...m}));}
+  });
+  function onAdd(entry){setAllEntries(s=>{const n=[entry,...s];try{localStorage.setItem('meridian_entries',JSON.stringify(n));}catch{}return n;});}
+  function updateMonthlyInput(month,key,value){setMonthlyInputs(prev=>{const n=prev.map(m=>m.month===month?{...m,[key]:value}:m);try{localStorage.setItem('meridian_monthly_inputs',JSON.stringify(n));}catch{}return n;});}
+
   useEffect(()=>{document.documentElement.dataset.theme=tweaks.theme;document.documentElement.dataset.density=tweaks.density;},[tweaks.theme,tweaks.density]);
   useEffect(()=>{document.documentElement.style.setProperty('--accent',tweaks.accent);},[tweaks.accent]);
   useEffect(()=>{document.documentElement.style.setProperty('--sans',`'${tweaks.uiFont}', system-ui, sans-serif`);document.documentElement.style.setProperty('--mono',`'${tweaks.dataFont}', ui-monospace, monospace`);document.documentElement.style.setProperty('--serif',`'${tweaks.serifFont}', Georgia, serif`);},[tweaks.uiFont,tweaks.dataFont,tweaks.serifFont]);
-  useEffect(()=>{const t=setInterval(()=>{const d=new Date();setNow(`27 May 2026 · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} CET`);},1000);return()=>clearInterval(t);},[]);
+  useEffect(()=>{
+    function tick(){
+      const d=new Date();
+      const dateStr=d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+      const timeStr=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      setNow(`${dateStr} · ${timeStr}`);
+    }
+    tick();
+    const t=setInterval(tick,1000);
+    return()=>clearInterval(t);
+  },[]);
 
+  const sharedProps={allEntries,onAdd,monthlyInputs,updateMonthlyInput};
   const ScreenComp = useMemo(()=>({overview:window.OverviewScreen,ledger:window.LedgerScreen,debt:window.DebtScreen,goals:window.GoalsScreen,advisor:window.AdvisorScreen,macro:window.MacroScreen}[screen]),[screen]);
 
   return (
@@ -1982,7 +2039,7 @@ function App() {
       <TopBar screen={screen} theme={tweaks.theme} setTheme={v=>setTweak('theme',v)} now={now}/>
       <SideNav screen={screen} setScreen={setScreen}/>
       <main className="main" data-screen-label={screen}>
-        {ScreenComp?<ScreenComp tweaks={tweaks} setTweak={setTweak}/>:<div style={{padding:40,color:'var(--ink-3)'}}>Screen not found.</div>}
+        {ScreenComp?<ScreenComp tweaks={tweaks} setTweak={setTweak} {...sharedProps}/>:<div style={{padding:40,color:'var(--ink-3)'}}>Screen not found.</div>}
       </main>
       <MeridianTweaks tweaks={tweaks} setTweak={setTweak}/>
     </div>
