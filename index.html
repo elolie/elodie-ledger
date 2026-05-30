@@ -1710,6 +1710,7 @@ function ApiKeySetup({ onSave }) {
         </div>
         <div className="ink3" style={{fontSize:11}}>Get your key at <span style={{color:'var(--accent)'}}>console.anthropic.com</span> → API Keys</div>
         <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+          <button className="btn" style={{padding:'8px 16px'}} onClick={()=>onSave('skip')}>Skip for now</button>
           <button className="btn primary" style={{padding:'8px 20px'}} onClick={()=>{if(val.startsWith('sk-')){localStorage.setItem('meridian_api_key',val);onSave(val);}else{alert('Key should start with sk-ant-...');}}}>Save & activate</button>
         </div>
       </div>
@@ -1752,6 +1753,7 @@ function AdvisorScreen({ tweaks, allEntries, monthlyInputs, loanSchedule }) {
   const [input,setInput]=useState('');
   const [busy,setBusy]=useState(false);
   const [apiKey,setApiKey]=useState(()=>localStorage.getItem('meridian_api_key')||'');
+  const showSetup = !apiKey;
   const scrollRef=useRef(null);
   useEffect(()=>{if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight;},[messages,busy]);
 
@@ -1809,7 +1811,7 @@ function AdvisorScreen({ tweaks, allEntries, monthlyInputs, loanSchedule }) {
 
   return (
     <>
-    {!apiKey&&<ApiKeySetup onSave={k=>setApiKey(k)}/>}
+    {showSetup&&<ApiKeySetup onSave={k=>{if(k!=='skip'){setApiKey(k);}else{localStorage.setItem('meridian_api_key','dismissed');setApiKey('dismissed');}}}/>}
     <div className="screen" style={{gridTemplateColumns:'1.2fr 1.4fr 1fr',height:'100%'}}>
       <div className="panel" style={{borderTop:0,borderLeft:0,borderBottom:0,overflow:'auto'}}>
         <div className="panel-h"><span className="title">TODAY'S BRIEFING</span><span className="meta">{todayStr}</span></div>
