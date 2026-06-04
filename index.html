@@ -2083,18 +2083,23 @@ const NAV = [
   { id:'macro',    tip:'Macro',       icon:Icon.macro },
 ];
 
-function TopBar({ screen, theme, setTheme, now }) {
+function TopBar({ screen, theme, setTheme, now, fxRates, fxStatus }) {
   const labels = { overview:'Overview', ledger:'Ledger', debt:'Debt to mom', goals:'Goals', advisor:'Advisor', macro:'Macro' };
+  const fx = fxRates || D.FX;
   return (
     <header className="topbar">
       <div className="brand"><span className="dot"></span><span>Meridian</span></div>
       <div className="crumbs">{labels[screen]||screen}</div>
       <div className="right">
         <div className="fx">
-          <span><span className="pair">EUR/USD</span> <span className="val">{D.FX.EURUSD.toFixed(4)}</span></span>
-          <span><span className="pair">EUR/VND</span> <span className="val">{D.FX.EURVND.toLocaleString()}</span></span>
-          <span><span className="pair">USD/VND</span> <span className="val">{D.FX.USDVND.toLocaleString()}</span></span>
+          <span><span className="pair">EUR/USD</span> <span className="val">{fx.EURUSD.toFixed(4)}</span></span>
+          <span><span className="pair">EUR/VND</span> <span className="val">{fx.EURVND.toLocaleString()}</span></span>
+          <span><span className="pair">USD/VND</span> <span className="val">{fx.USDVND.toLocaleString()}</span></span>
         </div>
+        <span style={{color:'var(--ink-4)'}}>·</span>
+        <span style={{fontSize:10,padding:'2px 7px',borderRadius:3,background:fxStatus==='live'?'color-mix(in oklab,var(--up) 15%,transparent)':fxStatus==='cached'?'color-mix(in oklab,var(--warn) 15%,transparent)':'transparent',color:fxStatus==='live'?'var(--up)':fxStatus==='cached'?'var(--warn)':'var(--ink-4)',fontFamily:'var(--mono)'}}>
+          {fxStatus==='live'?'● live':fxStatus==='cached'?'● cached':'···'}
+        </span>
         <span style={{color:'var(--ink-4)'}}>·</span>
         <span>{now}</span>
         <span style={{color:'var(--ink-4)'}}>·</span>
@@ -2121,6 +2126,8 @@ function App() {
   const [tweaks,setTweak] = window.useTweaks(tweakDefaults);
   const [screen,setScreen] = useState('overview');
   const [now,setNow] = useState('');
+  const [fxStatus,setFxStatus] = useState('loading'); // 'loading' | 'live' | 'cached'
+  const [fxRates,setFxRates] = useState({...D.FX});
 
   // Shared state lifted so Overview + Ledger stay in sync
   const [allEntries,setAllEntries] = useState(()=>{
@@ -2153,6 +2160,29 @@ function App() {
     return()=>clearInterval(t);
   },[]);
 
+  // Fetch live FX rates from free public API (no key needed, ECB data, updated daily)
+  useEffect(()=>{
+    fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.json')
+      .then(r=>r.json())
+      .then(data=>{
+        const r = data.eur;
+        if (r && r.usd && r.vnd) {
+          const newRates = {
+            EURUSD: parseFloat(r.usd.toFixed(4)),
+            EURVND: parseFloat(r.vnd.toFixed(2)),
+            USDVND: parseFloat((r.vnd/r.usd).toFixed(2)),
+          };
+          // Mutate D.FX in place so all toEUR/toVND/toUSD functions use live rates
+          D.FX.EURUSD = newRates.EURUSD;
+          D.FX.EURVND = newRates.EURVND;
+          D.FX.USDVND = newRates.USDVND;
+          setFxRates(newRates);
+          setFxStatus('live');
+        }
+      })
+      .catch(()=>setFxStatus('cached')); // silently fall back to hardcoded rates
+  },[]);
+
   // Effective schedule: merge loanSchedule + monthlyInputs
   // If a month has mom_set_aside > 0 in monthlyInputs but is still 'scheduled' in loanSchedule,
   // treat it as 'accrued' so all components stay in sync
@@ -2171,7 +2201,7 @@ function App() {
 
   return (
     <div className="app">
-      <TopBar screen={screen} theme={tweaks.theme} setTheme={v=>setTweak('theme',v)} now={now}/>
+      <TopBar screen={screen} theme={tweaks.theme} setTheme={v=>setTweak('theme',v)} now={now} fxRates={fxRates} fxStatus={fxStatus}/>
       <SideNav screen={screen} setScreen={setScreen}/>
       <main className="main" data-screen-label={screen}>
         {ScreenComp?<ScreenComp tweaks={tweaks} setTweak={setTweak} {...sharedProps}/>:<div style={{padding:40,color:'var(--ink-3)'}}>Screen not found.</div>}
