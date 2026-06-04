@@ -215,9 +215,9 @@ window.MERIDIAN_DATA = (() => {
   ];
   const ACCOUNTS = [
     { id: 'bnp',     name: 'BNP Paribas', ccy: 'EUR', balance: 8394.46, bank: 'BNP',     note: 'Feb mom payment (70M ₫) set aside here' },
-    { id: 'revolut', name: 'Revolut',     ccy: 'USD', balance: 6951.71, bank: 'Revolut', note: 'Mar + Apr mom payments (140M ₫) set aside here' },
+    { id: 'revolut', name: 'Revolut',     ccy: 'USD', balance: 10801.71, bank: 'Revolut', note: 'Mar + Apr + May mom payments (210M ₫) set aside here' },
   ];
-  const BASELINE = { date: '2026-05-29', cash_eur: 14373.06 };
+  const BASELINE = { date: '2026-06-04', cash_eur: 17675.73 };
   const LOAN_TOTAL_VND = 1_500_000_000;
   const LOAN_SCHEDULE = [
     { month: '2025-11', amount: 60_000_000,  status: 'remitted' },
@@ -621,7 +621,8 @@ window.MERIDIAN_DATA = (() => {
   function toUSD(a,ccy){if(ccy==='USD')return a;if(ccy==='EUR')return a*FX.EURUSD;if(ccy==='VND')return a/FX.USDVND;return a;}
   function toVND(a,ccy){if(ccy==='VND')return a;if(ccy==='EUR')return a*FX.EURVND;if(ccy==='USD')return a*FX.USDVND;return a;}
   function catById(id){return CATEGORIES.find(c=>c.id===id);}
-  return { FX, CATEGORIES, LOAN_TOTAL_VND, LOAN_SCHEDULE, ENTRIES, MONTHLY_INPUTS, HISTORY, ACCOUNTS, GOALS, MACRO, BRIEFING, NET_WORTH, BASELINE, fmt, toEUR, toUSD, toVND, catById };
+  function toEURlocked(e){return e.amount_eur!==undefined?e.amount_eur:toEUR(e.amount,e.ccy);}
+  return { FX, CATEGORIES, LOAN_TOTAL_VND, LOAN_SCHEDULE, ENTRIES, MONTHLY_INPUTS, HISTORY, ACCOUNTS, GOALS, MACRO, BRIEFING, NET_WORTH, BASELINE, fmt, toEUR, toUSD, toVND, toEURlocked, catById };
 })();
 </script>
 
@@ -843,7 +844,7 @@ function CategoryBars({ allEntries }) {
   const now = new Date();
   const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const sums={};
-  entries.filter(e=>e.date.startsWith(curMonth)).forEach(e=>{sums[e.cat]=(sums[e.cat]||0)+D.toEUR(e.amount,e.ccy);});
+  entries.filter(e=>e.date.startsWith(curMonth)).forEach(e=>{sums[e.cat]=(sums[e.cat]||0)+D.toEURlocked(e);});
   const total=Object.values(sums).reduce((a,b)=>a+b,0);
   const cats=[{id:'an_uong',color:'#6FB983'},{id:'must_have',color:'#5891D9'},{id:'optional',color:'#C284E8'},{id:'khac',color:'#E8A33D'}];
   return (
@@ -967,7 +968,7 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
   const schedule = loanSchedule || D.LOAN_SCHEDULE;
 
   // Live expense from entries for current month
-  const curMonthExpense = entries.filter(e=>e.date.startsWith(curMonth)&&e.cat!=='income').reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
+  const curMonthExpense = entries.filter(e=>e.date.startsWith(curMonth)&&e.cat!=='income').reduce((s,e)=>s+D.toEURlocked(e),0);
 
   // Live salary from monthlyInputs
   const curInput = inputs.find(m=>m.month===curMonth);
@@ -1223,7 +1224,15 @@ function MonthlyInputs({ selectedMonth, monthlyInputs, updateMonthlyInput, updat
 
 function QuickAddExpense({ onAdd, selectedMonth }) {
   const [cat,setCat]=useState('an_uong'),[label,setLabel]=useState(''),[amount,setAmount]=useState(''),[ccy,setCcy]=useState('EUR'),[date,setDate]=useState(selectedMonth+'-27');
-  function submit(e){e.preventDefault();if(!label.trim()||!amount)return;onAdd({id:'n'+Date.now(),date,cat,label:label.trim(),amount:parseFloat(amount),ccy});setLabel('');setAmount('');}
+  function submit(e){
+    e.preventDefault();
+    if(!label.trim()||!amount)return;
+    const amt=parseFloat(amount);
+    // Lock in EUR conversion at today's rate — so future rate changes don't affect this entry
+    const amount_eur=parseFloat(D.toEUR(amt,ccy).toFixed(2));
+    onAdd({id:'u'+Date.now(),date,cat,label:label.trim(),amount:amt,ccy,amount_eur});
+    setLabel('');setAmount('');
+  }
   return (
     <form onSubmit={submit} style={{display:'flex',gap:10,alignItems:'flex-end',padding:'12px 16px',borderBottom:'1px solid var(--rule)',background:'var(--panel-2)'}}>
       <div style={{display:'flex',flexDirection:'column'}}>
@@ -1296,7 +1305,7 @@ function ExpenseTable({ entries, displayCcy }) {
       <tbody>
         {days.map(day=>{
           const items=byDay[day];
-          const dayEUR=items.reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
+          const dayEUR=items.reduce((s,e)=>s+D.toEURlocked(e),0);
           return (
             <React.Fragment key={day}>
               <tr className="group-h">
@@ -1371,7 +1380,7 @@ function LedgerScreen({ allEntries, onAdd, monthlyInputs, updateMonthlyInput, lo
   },[monthlyInputs,curMonth]);
 
   const filtered=useMemo(()=>allEntries.filter(e=>e.date.startsWith(selectedMonth)&&activeCats.includes(e.cat)&&(!query||e.label.toLowerCase().includes(query.toLowerCase()))),[allEntries,selectedMonth,activeCats,query]);
-  const totalEUR=filtered.reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
+  const totalEUR=filtered.reduce((s,e)=>s+D.toEURlocked(e),0);
   const monthLabel=MONTHS.find(m=>m.value===selectedMonth)?.label||selectedMonth;
   return (
     <div className="screen" style={{gridTemplateColumns:'2fr 3fr',gridTemplateRows:'auto 1fr',background:'var(--rule)',height:'100%'}}>
@@ -1769,10 +1778,10 @@ function AdvisorScreen({ tweaks, allEntries, monthlyInputs, loanSchedule }) {
   const salaryUSD = curInput?.income_usd||0;
   const salaryEUR = curInput?.income_eur||0;
   const newIncome = inputs.filter(m=>m.month>=D.BASELINE.date.slice(0,7)&&m.income_usd>0).reduce((s,m)=>s+(m.income_eur||Math.round(m.income_usd/D.FX.EURUSD)),0);
-  const newExpenses = entries.filter(e=>e.date>D.BASELINE.date&&e.cat!=='income').reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
+  const newExpenses = entries.filter(e=>e.date>D.BASELINE.date&&e.cat!=='income').reduce((s,e)=>s+D.toEURlocked(e),0);
   const runningCash = D.BASELINE.cash_eur + newIncome - newExpenses;
   const freeCash = runningCash - D.toEUR(accrued,'VND');
-  const curMonthExpense = entries.filter(e=>e.date.startsWith(curMonth)&&e.cat!=='income').reduce((s,e)=>s+D.toEUR(e.amount,e.ccy),0);
+  const curMonthExpense = entries.filter(e=>e.date.startsWith(curMonth)&&e.cat!=='income').reduce((s,e)=>s+D.toEURlocked(e),0);
 
   const liveData = { runningCash, freeCash, accrued, remitted, curMonthExpense, salaryUSD, salaryEUR, schedule, allEntries: entries };
 
