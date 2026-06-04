@@ -886,7 +886,8 @@ function RecentActivity({ allEntries }) {
 
 function AccountsList({ loanSchedule, runningCash }) {
   const schedule = loanSchedule || D.LOAN_SCHEDULE;
-  const total = runningCash || D.ACCOUNTS.reduce((s,a)=>s+D.toEUR(a.balance,a.ccy),0);
+  const staticTotal = D.ACCOUNTS.reduce((s,a)=>s+D.toEUR(a.balance,a.ccy),0);
+  const total = staticTotal; // Show actual account balances; runningCash shown in KPI tile above
   // Build dynamic notes: which months are set aside in each account
   function noteFor(accountId) {
     const acct = accountId === 'bnp' ? 'BNP' : 'Revolut';
@@ -977,14 +978,15 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
 
   // === RUNNING CASH (baseline formula) ===
   // Baseline: €14,373.06 on 2026-05-29 (actual balance, all history baked in)
-  // + salary received for May 2026 onwards (May still pending at baseline)
+  // + salary received for months AFTER baseline date only (baseline already includes prior salary)
   // − expenses logged with date strictly after baseline date
+  const baselineMonth = D.BASELINE.date.slice(0,7); // e.g. '2026-06'
   const newIncome = inputs
-    .filter(m => m.month >= '2026-05' && m.income_usd > 0)
+    .filter(m => m.month >= baselineMonth && m.income_usd > 0)
     .reduce((s, m) => s + (m.income_eur || Math.round(m.income_usd / D.FX.EURUSD)), 0);
   const newExpenses = entries
     .filter(e => e.date > D.BASELINE.date && e.cat !== 'income')
-    .reduce((s, e) => s + D.toEUR(e.amount, e.ccy), 0);
+    .reduce((s, e) => s + D.toEURlocked(e), 0);
   const runningCash = D.BASELINE.cash_eur + newIncome - newExpenses;
 
   // Accurate accrued = loanSchedule 'accrued' months + any monthlyInputs with mom_set_aside
@@ -999,25 +1001,24 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
   const accrued = scheduleAccrued + inputsExtraAccrued;
   const freeCash = runningCash - D.toEUR(accrued, 'VND');
   const nwDelta=D.NET_WORTH.net-D.NET_WORTH.history[0].val;
-  // Live cashflow chart — auto-extends with current month even if not in D.HISTORY
+  // Live cashflow chart — uses monthlyInputs for salary across all months, auto-extends for current month
   const liveChartData = useMemo(()=>{
-    const base = D.HISTORY.map(h =>
-      h.m === curMonth
-        ? {...h, expense: curMonthExpense, income_eur: salaryEUR, income_usd: salaryUSD}
-        : h
-    );
-    // Add current month if it's newer than last history entry
+    const base = D.HISTORY.map(h => {
+      const inp = inputs.find(m => m.month === h.m);
+      const liveIncome = inp && inp.income_usd > 0
+        ? (inp.income_eur || Math.round(inp.income_usd / D.FX.EURUSD))
+        : h.income_eur;
+      if (h.m === curMonth) {
+        return {...h, expense: curMonthExpense, income_eur: liveIncome, income_usd: inp?.income_usd||0};
+      }
+      return {...h, income_eur: liveIncome};
+    });
+    // Auto-add current month if newer than history
     if (!D.HISTORY.find(h => h.m === curMonth)) {
-      base.push({
-        m: curMonth,
-        income_usd: salaryUSD,
-        income_eur: salaryEUR,
-        expense: curMonthExpense,
-        an_uong: 0, must_have: 0, optional: 0, khac: 0
-      });
+      base.push({m:curMonth, income_usd:salaryUSD, income_eur:salaryEUR, expense:curMonthExpense, an_uong:0, must_have:0, optional:0, khac:0});
     }
     return base;
-  }, [curMonth, curMonthExpense, salaryEUR, salaryUSD]);
+  }, [curMonth, curMonthExpense, salaryEUR, salaryUSD, inputs]);
 
   // Live briefing figures
   const todayStr = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
