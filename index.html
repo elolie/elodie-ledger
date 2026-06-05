@@ -844,7 +844,7 @@ function CategoryBars({ allEntries }) {
   const now = new Date();
   const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const sums={};
-  entries.filter(e=>e.date.startsWith(curMonth)).forEach(e=>{sums[e.cat]=(sums[e.cat]||0)+D.toEURlocked(e);});
+  entries.filter(e=>e.date.startsWith(curMonth)&&!e.one_off).forEach(e=>{sums[e.cat]=(sums[e.cat]||0)+D.toEURlocked(e);});
   const total=Object.values(sums).reduce((a,b)=>a+b,0);
   const cats=[{id:'an_uong',color:'#6FB983'},{id:'must_have',color:'#5891D9'},{id:'optional',color:'#C284E8'},{id:'khac',color:'#E8A33D'}];
   return (
@@ -969,7 +969,10 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
   const schedule = loanSchedule || D.LOAN_SCHEDULE;
 
   // Live expense from entries for current month
-  const curMonthExpense = entries.filter(e=>e.date.startsWith(curMonth)&&e.cat!=='income').reduce((s,e)=>s+D.toEURlocked(e),0);
+  // Total (incl. one-offs) used for running cash; recurring-only used for display/averages
+  const curMonthExpenseTotal = entries.filter(e=>e.date.startsWith(curMonth)&&e.cat!=='income').reduce((s,e)=>s+D.toEURlocked(e),0);
+  const curMonthExpense = entries.filter(e=>e.date.startsWith(curMonth)&&e.cat!=='income'&&!e.one_off).reduce((s,e)=>s+D.toEURlocked(e),0);
+  const curMonthOneOffs = curMonthExpenseTotal - curMonthExpense;
 
   // Live salary from monthlyInputs
   const curInput = inputs.find(m=>m.month===curMonth);
@@ -986,7 +989,7 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
     .reduce((s, m) => s + (m.income_eur || Math.round(m.income_usd / D.FX.EURUSD)), 0);
   const newExpenses = entries
     .filter(e => e.date > D.BASELINE.date && e.cat !== 'income')
-    .reduce((s, e) => s + D.toEURlocked(e), 0);
+    .reduce((s, e) => s + D.toEURlocked(e), 0); // includes one-offs — real money left account
   const runningCash = D.BASELINE.cash_eur + newIncome - newExpenses;
 
   // Accurate accrued = loanSchedule 'accrued' months + any monthlyInputs with mom_set_aside
@@ -1032,7 +1035,7 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:1,background:'var(--rule)'}}>
         <div style={{background:'var(--panel)'}}><KPI label="Total cash · running" serif value={`€${runningCash.toLocaleString('en-US',{maximumFractionDigits:0})}`} sub={`baseline €${D.BASELINE.cash_eur.toLocaleString()} · ${newExpenses>0?`−€${newExpenses.toFixed(0)} new expenses`:'no new expenses since '+D.BASELINE.date}`}/></div>
         <div style={{background:'var(--panel)'}}><KPI label="Free cash (after mom set-aside)" serif value={`€${freeCash.toLocaleString('en-US',{maximumFractionDigits:0})}`} delta={`${D.fmt(accrued,'VND',{compact:true})} earmarked for mom`} deltaDir="flat"/></div>
-        <div style={{background:'var(--panel)'}}><KPI label={`${curMonthLabel} expenses to date`} serif value={`€${curMonthExpense.toFixed(0)}`} sub={salaryUSD>0?`salary received · €${salaryEUR.toLocaleString()}`:'salary not yet received'}/></div>
+        <div style={{background:'var(--panel)'}}><KPI label={`${curMonthLabel} expenses to date`} serif value={`€${curMonthExpense.toFixed(0)}`} sub={salaryUSD>0?`salary received · €${salaryEUR.toLocaleString()}`:'salary not yet received'} note={curMonthOneOffs>0?`+ €${curMonthOneOffs.toFixed(0)} one-off (excl. from avg)`:undefined}/></div>
         <div style={{background:'var(--panel)'}}><KPI label="Monthly salary (USD)" serif value={salaryUSD>0?`$${salaryUSD.toLocaleString()}`:'Pending'} sub={salaryUSD>0?`≈ €${salaryEUR.toLocaleString()} this month`:'Expected end of month'} note={salaryUSD===0?'Log salary in Ledger when received':undefined}/></div>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr 1.3fr',gap:1,background:'var(--rule)'}}>
@@ -1236,15 +1239,14 @@ function MonthlyInputs({ selectedMonth, monthlyInputs, updateMonthlyInput, updat
 }
 
 function QuickAddExpense({ onAdd, selectedMonth }) {
-  const [cat,setCat]=useState('an_uong'),[label,setLabel]=useState(''),[amount,setAmount]=useState(''),[ccy,setCcy]=useState('EUR'),[date,setDate]=useState(selectedMonth+'-27');
+  const [cat,setCat]=useState('an_uong'),[label,setLabel]=useState(''),[amount,setAmount]=useState(''),[ccy,setCcy]=useState('EUR'),[date,setDate]=useState(selectedMonth+'-27'),[oneOff,setOneOff]=useState(false);
   function submit(e){
     e.preventDefault();
     if(!label.trim()||!amount)return;
     const amt=parseFloat(amount);
-    // Lock in EUR conversion at today's rate — so future rate changes don't affect this entry
     const amount_eur=parseFloat(D.toEUR(amt,ccy).toFixed(2));
-    onAdd({id:'u'+Date.now(),date,cat,label:label.trim(),amount:amt,ccy,amount_eur});
-    setLabel('');setAmount('');
+    onAdd({id:'u'+Date.now(),date,cat,label:label.trim(),amount:amt,ccy,amount_eur,one_off:oneOff});
+    setLabel('');setAmount('');setOneOff(false);
   }
   return (
     <form onSubmit={submit} style={{display:'flex',gap:10,alignItems:'flex-end',padding:'12px 16px',borderBottom:'1px solid var(--rule)',background:'var(--panel-2)'}}>
@@ -1271,6 +1273,10 @@ function QuickAddExpense({ onAdd, selectedMonth }) {
         <select className="field" value={ccy} onChange={e=>setCcy(e.target.value)} style={{width:80}}>
           <option>EUR</option><option>USD</option><option>VND</option>
         </select>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+        <label className="field-lbl" style={{whiteSpace:'nowrap'}}>One-off</label>
+        <button type="button" onClick={()=>setOneOff(s=>!s)} style={{width:32,height:32,borderRadius:3,border:'1px solid '+(oneOff?'var(--accent)':'var(--rule-2)'),background:oneOff?'color-mix(in oklab,var(--accent) 15%,transparent)':'transparent',color:oneOff?'var(--accent)':'var(--ink-4)',fontSize:14,display:'grid',placeItems:'center'}}>✦</button>
       </div>
       <button type="submit" className="btn primary" style={{height:32,whiteSpace:'nowrap'}}>+ Log</button>
     </form>
@@ -1329,7 +1335,7 @@ function ExpenseTable({ entries, displayCcy }) {
               {items.map(e=>{const cat=D.catById(e.cat);return(
                 <tr key={e.id}>
                   <td className="ink3 mono">{e.date.slice(8)}</td>
-                  <td style={{color:'var(--ink)'}}>{e.label}</td>
+                  <td style={{color:'var(--ink)'}}>{e.label}{e.one_off&&<span className="badge" style={{marginLeft:6,color:'var(--warn)',borderColor:'color-mix(in oklab,var(--warn) 40%,var(--rule))'}}>one-off</span>}</td>
                   <td><span className="cat-chip"><span className={`cat-dot ${cat.cls}`}></span>{cat.en}</span></td>
                   <td className="r mono">{D.fmt(e.amount,e.ccy,{compact:e.ccy==='VND'})}</td>
                   <td className="r mono ink2">{display(e.amount,e.ccy)}</td>
@@ -1343,24 +1349,34 @@ function ExpenseTable({ entries, displayCcy }) {
   );
 }
 
-function SpendingCheck({ selectedMonth }) {
+function SpendingCheck({ selectedMonth, allEntries }) {
   const hist=D.HISTORY.find(h=>h.m===selectedMonth);
   const past=D.HISTORY.filter(h=>h.income_eur>0);
   const avg={expense:past.reduce((s,h)=>s+h.expense,0)/past.length,an_uong:past.reduce((s,h)=>s+h.an_uong,0)/past.length,must_have:past.reduce((s,h)=>s+h.must_have,0)/past.length,optional:past.reduce((s,h)=>s+h.optional,0)/past.length,khac:past.reduce((s,h)=>s+h.khac,0)/past.length};
   const rows=[{lbl:'Food & drink',k:'an_uong'},{lbl:'Essentials',k:'must_have'},{lbl:'Discretionary',k:'optional'},{lbl:'Other',k:'khac'}];
-  if(!hist)return <div style={{padding:24}}><div className="serif ink3" style={{fontStyle:'italic',fontSize:14}}>No spending data for this month.</div></div>;
+
+  // For current month: use live entries (excl. one-offs) instead of D.HISTORY
+  const liveEntries = allEntries||[];
+  const isLive = !hist || liveEntries.some(e=>e.date.startsWith(selectedMonth)&&e.id.startsWith('u'));
+  const liveExpense = liveEntries.filter(e=>e.date.startsWith(selectedMonth)&&e.cat!=='income'&&!e.one_off).reduce((s,e)=>s+D.toEURlocked(e),0);
+  const liveOneOff = liveEntries.filter(e=>e.date.startsWith(selectedMonth)&&e.cat!=='income'&&e.one_off).reduce((s,e)=>s+D.toEURlocked(e),0);
+  const displayExpense = hist ? (isLive ? liveExpense : hist.expense) : liveExpense;
+
+  if(!hist&&liveExpense===0)return <div style={{padding:24}}><div className="serif ink3" style={{fontStyle:'italic',fontSize:14}}>No spending data for this month.</div></div>;
   return (
     <div>
       <div style={{padding:'16px 20px',borderBottom:'1px solid var(--rule)'}}>
-        <div className="eyebrow" style={{marginBottom:6}}>vs. {past.length}-month average</div>
+        <div className="eyebrow" style={{marginBottom:6}}>vs. {past.length}-month average (excl. one-offs)</div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
-          <div className="serif" style={{fontSize:30,color:'var(--ink)'}}>€{hist.expense.toFixed(0)}</div>
+          <div className="serif" style={{fontSize:30,color:'var(--ink)'}}>€{displayExpense.toFixed(0)}</div>
           <div className="ink3" style={{fontSize:12}}>avg €{avg.expense.toFixed(0)}/mo</div>
         </div>
-        {selectedMonth==='2026-05'&&<div className="ink3 serif" style={{fontSize:12,fontStyle:'italic',marginTop:4}}>Through 25 May only — salary pending</div>}
+        {liveOneOff>0&&<div className="ink3 serif" style={{fontSize:12,fontStyle:'italic',marginTop:4}}>+ €{liveOneOff.toFixed(0)} one-off expenses excluded from comparison</div>}
       </div>
       <div style={{padding:'14px 20px',display:'flex',flexDirection:'column',gap:14}}>
-        {rows.map(r=>{const actual=hist[r.k],pct=avg[r.k]>0?(actual/avg[r.k])*100:0,over=pct>100;return(
+        {rows.map(r=>{
+          const actual = hist ? (isLive ? liveEntries.filter(e=>e.date.startsWith(selectedMonth)&&e.cat===r.k&&!e.one_off).reduce((s,e)=>s+D.toEURlocked(e),0) : hist[r.k]) : liveEntries.filter(e=>e.date.startsWith(selectedMonth)&&e.cat===r.k&&!e.one_off).reduce((s,e)=>s+D.toEURlocked(e),0);
+          const pct=avg[r.k]>0?(actual/avg[r.k])*100:0,over=pct>100;return(
           <div key={r.k}>
             <div className="row-between" style={{marginBottom:5}}>
               <span style={{fontSize:12,color:'var(--ink-2)'}}>{r.lbl}</span>
@@ -1422,7 +1438,7 @@ function LedgerScreen({ allEntries, onAdd, monthlyInputs, updateMonthlyInput, lo
       </div>
       <div className="panel" style={{borderLeft:0,borderBottom:0,overflow:'auto'}}>
         <div className="panel-h"><span className="title">Spending check · {monthLabel}</span></div>
-        <SpendingCheck selectedMonth={selectedMonth}/>
+        <SpendingCheck selectedMonth={selectedMonth} allEntries={allEntries}/>
       </div>
     </div>
   );
