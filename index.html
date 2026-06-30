@@ -985,7 +985,7 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
   // − expenses logged with date strictly after baseline date
   const baselineMonth = D.BASELINE.date.slice(0,7); // e.g. '2026-06'
   const newIncome = inputs
-    .filter(m => m.month >= baselineMonth && m.income_usd > 0)
+    .filter(m => m.month > baselineMonth && m.income_usd > 0)
     .reduce((s, m) => s + (m.income_eur || Math.round(m.income_usd / D.FX.EURUSD)), 0);
   const newExpenses = entries
     .filter(e => e.date > D.BASELINE.date && e.cat !== 'income')
@@ -1806,7 +1806,7 @@ function AdvisorScreen({ tweaks, allEntries, monthlyInputs, loanSchedule }) {
   const curInput = inputs.find(m=>m.month===curMonth);
   const salaryUSD = curInput?.income_usd||0;
   const salaryEUR = curInput?.income_eur||0;
-  const newIncome = inputs.filter(m=>m.month>=D.BASELINE.date.slice(0,7)&&m.income_usd>0).reduce((s,m)=>s+(m.income_eur||Math.round(m.income_usd/D.FX.EURUSD)),0);
+  const newIncome = inputs.filter(m=>m.month>D.BASELINE.date.slice(0,7)&&m.income_usd>0).reduce((s,m)=>s+(m.income_eur||Math.round(m.income_usd/D.FX.EURUSD)),0);
   const newExpenses = entries.filter(e=>e.date>D.BASELINE.date&&e.cat!=='income').reduce((s,e)=>s+D.toEURlocked(e),0);
   const runningCash = D.BASELINE.cash_eur + newIncome - newExpenses;
   const freeCash = runningCash - D.toEUR(accrued,'VND');
