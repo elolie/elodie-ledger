@@ -1016,12 +1016,33 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
       }
       return {...h, income_eur: liveIncome};
     });
-    // Auto-add current month if newer than history
-    if (!D.HISTORY.find(h => h.m === curMonth)) {
-      base.push({m:curMonth, income_usd:salaryUSD, income_eur:salaryEUR, expense:curMonthExpense, an_uong:0, must_have:0, optional:0, khac:0});
+    // Fill in ALL missing months between last history entry and today
+    function nextMonth(ym) {
+      const [y,m] = ym.split('-').map(Number);
+      const d = new Date(y, m, 1); // month is 0-indexed, so m = next month
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    }
+    let m = D.HISTORY[D.HISTORY.length-1].m;
+    while (m <= curMonth) {
+      m = nextMonth(m);
+      if (m > curMonth) break;
+      if (!D.HISTORY.find(h => h.m === m)) {
+        const inp = inputs.find(x => x.month === m);
+        const isLive = m === curMonth;
+        const monthExpense = isLive
+          ? curMonthExpense
+          : entries.filter(e=>e.date.startsWith(m)&&e.cat!=='income'&&!e.one_off).reduce((s,e)=>s+D.toEURlocked(e),0);
+        base.push({
+          m,
+          income_usd: inp?.income_usd||0,
+          income_eur: inp?.income_eur||(inp?.income_usd?Math.round(inp.income_usd/D.FX.EURUSD):0),
+          expense: monthExpense,
+          an_uong:0, must_have:0, optional:0, khac:0
+        });
+      }
     }
     return base;
-  }, [curMonth, curMonthExpense, salaryEUR, salaryUSD, inputs]);
+  }, [curMonth, curMonthExpense, salaryEUR, salaryUSD, inputs, entries]);
 
   // Live briefing figures
   const todayStr = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -1107,20 +1128,16 @@ const D = window.MERIDIAN_DATA;
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function buildMonths() {
   const now = new Date();
-  const cur = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const base = [
-    { value:'2026-05', label:'May 2026' },
-    { value:'2026-04', label:'Apr 2026' },
-    { value:'2026-03', label:'Mar 2026' },
-    { value:'2026-02', label:'Feb 2026' },
-    { value:'2026-01', label:'Jan 2026' },
-    { value:'2025-12', label:'Dec 2025' },
-    { value:'2025-11', label:'Nov 2025' },
-  ];
-  if (!base.find(m=>m.value===cur)) {
-    base.unshift({ value:cur, label:`${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}` });
+  const start = new Date(2025, 10, 1); // Nov 2025
+  const months = [];
+  let d = new Date(now.getFullYear(), now.getMonth(), 1);
+  while (d >= start) {
+    const value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+    months.push({ value, label });
+    d = new Date(d.getFullYear(), d.getMonth()-1, 1);
   }
-  return base;
+  return months;
 }
 const MONTHS = buildMonths();
 
