@@ -239,7 +239,7 @@ window.MERIDIAN_DATA = (() => {
     { month: '2027-03', amount: 80_000_000,  status: 'projected' },
     { month: '2027-04', amount: 80_000_000,  status: 'projected' },
     { month: '2027-05', amount: 80_000_000,  status: 'projected' },
-    { month: '2027-06', amount: 60_000_000,  status: 'projected' },
+    { month: '2027-06', amount: 100_000_000, status: 'projected' },
   ];
   const MONTHLY_INPUTS = [
     { month: '2025-11', income_usd: 3850, income_eur: 3641, mom_set_aside: 60_000_000 },
@@ -1544,11 +1544,16 @@ function WhatIf({ sched }) {
   const remitted=sched.filter(s=>s.status==='remitted').reduce((s,x)=>s+x.amount,0);
   const accrued=sched.filter(s=>s.status==='accrued').reduce((s,x)=>s+x.amount,0);
   const remaining=D.LOAN_TOTAL_VND-remitted-accrued;
-  const baseMonthly=73_000_000,baseMonths=Math.ceil(remaining/baseMonthly);
-  const newMonthly=baseMonthly+extra*1_000_000,newMonths=Math.ceil(remaining/newMonthly);
-  const saved=baseMonths-newMonths;
+  // Base case reads the ACTUAL remaining schedule (scheduled + projected months) rather than
+  // a flat guess — so with no extra payment this matches the payment table exactly.
+  const future=sched.filter(s=>s.status==='scheduled'||s.status==='projected');
+  const baseMonths=future.length||1;
+  const baseMonthly=future.length?remaining/future.length:73_000_000;
   const today=new Date();
-  const freeDate=new Date(today.getFullYear(),today.getMonth()+newMonths,1);
+  const baseFreeDate=future.length?new Date(future[future.length-1].month+'-01'):new Date(today.getFullYear(),today.getMonth()+baseMonths,1);
+  const newMonthly=baseMonthly+extra*1_000_000,newMonths=Math.max(1,Math.ceil(remaining/newMonthly));
+  const saved=baseMonths-newMonths;
+  const freeDate=extra===0?baseFreeDate:new Date(today.getFullYear(),today.getMonth()+newMonths,1);
   const dfStr=freeDate.toLocaleDateString('en-GB',{month:'short',year:'2-digit'}).toUpperCase();
   return (
     <div style={{padding:18,display:'flex',flexDirection:'column',gap:18}}>
