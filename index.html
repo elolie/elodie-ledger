@@ -204,7 +204,7 @@ select.field { padding-right: 28px; appearance: none; background-image: linear-g
    data.js — grounded financial state, May 27 2026.
    ============================================================ */
 window.MERIDIAN_DATA = (() => {
-  const FX = { EURUSD: 1.1638, USDVND: 26333.15, EURVND: 30661.38 };
+  const FX = { EURUSD: 1.1535, USDVND: 26300.00, EURVND: 30337.05 };
   const CATEGORIES = [
     { id: 'an_uong',   en: 'Food & drink',  vn: 'Ăn uống',       cls: 'cat-an_uong' },
     { id: 'must_have', en: 'Essentials',    vn: 'Must have',     cls: 'cat-must_have' },
@@ -214,10 +214,10 @@ window.MERIDIAN_DATA = (() => {
     { id: 'income',    en: 'Income',        vn: 'Thu nhập',      cls: 'cat-income' },
   ];
   const ACCOUNTS = [
-    { id: 'bnp',     name: 'BNP Paribas', ccy: 'EUR', balance: 7287.00, bank: 'BNP',     note: 'Feb mom payment (70M ₫) set aside here' },
-    { id: 'revolut', name: 'Revolut',     ccy: 'USD', balance: 12487.00, bank: 'Revolut', note: 'Mar, Apr, May, Jun mom payments (280M ₫) set aside here' },
+    { id: 'bnp',     name: 'BNP Paribas', ccy: 'EUR', balance: 7166.58, bank: 'BNP',     note: 'Feb mom payment (70M ₫) set aside here' },
+    { id: 'revolut', name: 'Revolut',     ccy: 'USD', balance: 15518.79, bank: 'Revolut', note: 'Mar, Apr, Jul mom payments (210M ₫) set aside here' },
   ];
-  const BASELINE = { date: '2026-06-30', cash_eur: 18254.06 };
+  const BASELINE = { date: '2026-08-05', cash_eur: 20620.23 };
   const LOAN_TOTAL_VND = 1_500_000_000;
   const LOAN_SCHEDULE = [
     { month: '2025-11', amount: 60_000_000,  status: 'remitted' },
@@ -228,7 +228,7 @@ window.MERIDIAN_DATA = (() => {
     { month: '2026-04', amount: 70_000_000,  status: 'accrued',  acct: 'Revolut' },
     { month: '2026-05', amount: 70_000_000,  status: 'scheduled' },
     { month: '2026-06', amount: 70_000_000,  status: 'scheduled' },
-    { month: '2026-07', amount: 70_000_000,  status: 'scheduled' },
+    { month: '2026-07', amount: 70_000_000,  status: 'accrued',  acct: 'Revolut' },
     { month: '2026-08', amount: 70_000_000,  status: 'scheduled' },
     { month: '2026-09', amount: 70_000_000,  status: 'scheduled' },
     { month: '2026-10', amount: 80_000_000,  status: 'scheduled' },
@@ -249,6 +249,8 @@ window.MERIDIAN_DATA = (() => {
     { month: '2026-03', income_usd: 3850, income_eur: 3626, mom_set_aside: 70_000_000 },
     { month: '2026-04', income_usd: 3675, income_eur: 3139, mom_set_aside: 70_000_000 },
     { month: '2026-05', income_usd: 0,    income_eur: 0,    mom_set_aside: 0 },
+    { month: '2026-06', income_usd: 0,    income_eur: 0,    mom_set_aside: 0 },
+    { month: '2026-07', income_usd: 3850, income_eur: 3337, mom_set_aside: 70_000_000 },
   ];
   const HISTORY = [
     { m: '2025-11', income_usd: 3850, income_eur: 3641, expense: 892,  an_uong: 284, must_have: 432, optional: 136, khac: 40 },
