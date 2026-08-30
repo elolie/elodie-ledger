@@ -982,12 +982,12 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
   const salaryEUR = curInput?.income_eur||0;
 
   // === RUNNING CASH (baseline formula) ===
-  // Baseline: €14,373.06 on 2026-05-29 (actual balance, all history baked in)
-  // + salary received for months AFTER baseline date only (baseline already includes prior salary)
+  // Baseline: €20,620.23 on 2026-08-05 (actual balance, salary for that month not yet received)
+  // + salary received for the baseline month onward, once logged (baseline predates it arriving)
   // − expenses logged with date strictly after baseline date
-  const baselineMonth = D.BASELINE.date.slice(0,7); // e.g. '2026-06'
+  const baselineMonth = D.BASELINE.date.slice(0,7); // e.g. '2026-08'
   const newIncome = inputs
-    .filter(m => m.month > baselineMonth && m.income_usd > 0)
+    .filter(m => m.month >= baselineMonth && m.income_usd > 0)
     .reduce((s, m) => s + (m.income_eur || Math.round(m.income_usd / D.FX.EURUSD)), 0);
   const newExpenses = entries
     .filter(e => e.date > D.BASELINE.date && e.cat !== 'income')
@@ -1830,7 +1830,7 @@ function AdvisorScreen({ tweaks, allEntries, monthlyInputs, loanSchedule }) {
   const curInput = inputs.find(m=>m.month===curMonth);
   const salaryUSD = curInput?.income_usd||0;
   const salaryEUR = curInput?.income_eur||0;
-  const newIncome = inputs.filter(m=>m.month>D.BASELINE.date.slice(0,7)&&m.income_usd>0).reduce((s,m)=>s+(m.income_eur||Math.round(m.income_usd/D.FX.EURUSD)),0);
+  const newIncome = inputs.filter(m=>m.month>=D.BASELINE.date.slice(0,7)&&m.income_usd>0).reduce((s,m)=>s+(m.income_eur||Math.round(m.income_usd/D.FX.EURUSD)),0);
   const newExpenses = entries.filter(e=>e.date>D.BASELINE.date&&e.cat!=='income').reduce((s,e)=>s+D.toEURlocked(e),0);
   const runningCash = D.BASELINE.cash_eur + newIncome - newExpenses;
   const freeCash = runningCash - D.toEUR(accrued,'VND');
