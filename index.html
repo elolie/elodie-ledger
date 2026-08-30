@@ -2204,7 +2204,16 @@ function App() {
   // One-time migration: if monthlyInputs has Nov/Dec/Jan with mom_set_aside > 0 but those are 'remitted',
   // the stale localStorage data is fine — the free cash now correctly reads from loanSchedule only.
   function onAdd(entry){setAllEntries(s=>{const n=[entry,...s];try{localStorage.setItem('meridian_entries',JSON.stringify(n));}catch{}return n;});}
-  function updateMonthlyInput(month,key,value){setMonthlyInputs(prev=>{const n=prev.map(m=>m.month===month?{...m,[key]:value}:m);try{localStorage.setItem('meridian_monthly_inputs',JSON.stringify(n));}catch{}return n;});}
+  function updateMonthlyInput(month,key,value){
+    setMonthlyInputs(prev=>{
+      const exists = prev.some(m=>m.month===month);
+      const n = exists
+        ? prev.map(m=>m.month===month?{...m,[key]:value}:m)
+        : [...prev, {month, income_usd:0, income_eur:0, mom_set_aside:0, [key]:value}].sort((a,b)=>a.month.localeCompare(b.month));
+      try{localStorage.setItem('meridian_monthly_inputs',JSON.stringify(n));}catch{}
+      return n;
+    });
+  }
   function updateLoanEntry(month,updates){setLoanSchedule(prev=>{const existing=prev.find(m=>m.month===month);let n;if(existing){n=prev.map(m=>m.month===month?{...m,...updates}:m);}else{n=[...prev,{month,amount:70_000_000,...updates}];}try{localStorage.setItem('meridian_loan_schedule',JSON.stringify(n));}catch{}return n;});}
 
   useEffect(()=>{document.documentElement.dataset.theme=tweaks.theme;document.documentElement.dataset.density=tweaks.density;},[tweaks.theme,tweaks.density]);
