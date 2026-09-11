@@ -554,8 +554,8 @@ window.MERIDIAN_DATA = (() => {
     { id:'fD',date:'2026-05-25',cat:'must_have',label:'claude',amount:19.31,ccy:'EUR'},
     { id:'fE',date:'2026-05-25',cat:'must_have',label:'nha trang',amount:180.51,ccy:'EUR'},
     { id:'fF',date:'2026-05-25',cat:'an_uong',label:'ca phe',amount:9.26,ccy:'EUR'},
-    { id:'rent-oct-2026',date:'2026-10-01',cat:'must_have',label:'rent',amount:350,ccy:'EUR'},
-    { id:'rent-nov-2026',date:'2026-11-01',cat:'must_have',label:'rent',amount:350,ccy:'EUR'},
+    { id:'rent-oct-2026',date:'2026-10-01',cat:'must_have',label:'rent',amount:350,ccy:'EUR',pre_baseline:true},
+    { id:'rent-nov-2026',date:'2026-11-01',cat:'must_have',label:'rent',amount:350,ccy:'EUR',pre_baseline:true},
   ];
   const GOALS = [
     { id:'g1', name:'Wedding & honeymoon',   target:12000, saved:3200, ccy:'EUR', by:'2027-09' },
@@ -908,6 +908,7 @@ function AccountsList({ loanSchedule, runningCash }) {
               {a.ccy!=='EUR'&&<div className="ink3" style={{fontSize:11}}>≈ {D.fmt(D.toEUR(a.balance,a.ccy),'EUR',{decimals:0})}</div>}
             </div>
           </div>
+          {a.note&&<div className="serif ink3" style={{fontSize:12,fontStyle:'italic',marginTop:6,lineHeight:1.4}}>{a.note}</div>}
         </div>
       ))}
       {accruedLabel&&<div style={{padding:'10px 16px',borderBottom:'1px solid var(--rule)'}}><div className="serif ink3" style={{fontSize:12,fontStyle:'italic',lineHeight:1.4}}>{accruedLabel}</div></div>}
@@ -986,7 +987,7 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
     .filter(m => m.month >= baselineMonth && m.income_usd > 0)
     .reduce((s, m) => s + (m.income_eur || Math.round(m.income_usd / D.FX.EURUSD)), 0);
   const newExpenses = entries
-    .filter(e => e.date > D.BASELINE.date && e.cat !== 'income')
+    .filter(e => e.date > D.BASELINE.date && e.cat !== 'income' && !e.pre_baseline)
     .reduce((s, e) => s + D.toEURlocked(e), 0); // includes one-offs — real money left account
   const runningCash = D.BASELINE.cash_eur + newIncome - newExpenses;
 
@@ -1826,7 +1827,7 @@ function AdvisorScreen({ tweaks, allEntries, monthlyInputs, loanSchedule }) {
   const salaryUSD = curInput?.income_usd||0;
   const salaryEUR = curInput?.income_eur||0;
   const newIncome = inputs.filter(m=>m.month>=D.BASELINE.date.slice(0,7)&&m.income_usd>0).reduce((s,m)=>s+(m.income_eur||Math.round(m.income_usd/D.FX.EURUSD)),0);
-  const newExpenses = entries.filter(e=>e.date>D.BASELINE.date&&e.cat!=='income').reduce((s,e)=>s+D.toEURlocked(e),0);
+  const newExpenses = entries.filter(e=>e.date>D.BASELINE.date&&e.cat!=='income'&&!e.pre_baseline).reduce((s,e)=>s+D.toEURlocked(e),0);
   const runningCash = D.BASELINE.cash_eur + newIncome - newExpenses;
   const freeCash = runningCash - D.toEUR(accrued,'VND');
   const curMonthExpense = entries.filter(e=>e.date.startsWith(curMonth)&&e.cat!=='income').reduce((s,e)=>s+D.toEURlocked(e),0);
