@@ -214,16 +214,16 @@ window.MERIDIAN_DATA = (() => {
     { id: 'income',    en: 'Income',        vn: 'Thu nhập',      cls: 'cat-income' },
   ];
   const ACCOUNTS = [
-    { id: 'bnp',     name: 'BNP Paribas', ccy: 'EUR', balance: 7166.58, bank: 'BNP',     note: 'Feb mom payment (70M ₫) set aside here' },
-    { id: 'revolut', name: 'Revolut',     ccy: 'USD', balance: 15518.79, bank: 'Revolut', note: 'Mar, Apr, Jul mom payments (210M ₫) set aside here' },
+    { id: 'revolut_eur', name: 'Revolut', ccy: 'EUR', balance: 6280.76, bank: 'Revolut', note: '' },
+    { id: 'revolut_usd', name: 'Revolut', ccy: 'USD', balance: 16531.24, bank: 'Revolut', note: '' },
   ];
-  const BASELINE = { date: '2026-08-05', cash_eur: 20620.23 };
+  const BASELINE = { date: '2026-09-11', cash_eur: 20513.44 };
   const LOAN_TOTAL_VND = 1_500_000_000;
   const LOAN_SCHEDULE = [
     { month: '2025-11', amount: 60_000_000,  status: 'remitted' },
     { month: '2025-12', amount: 70_000_000,  status: 'remitted' },
     { month: '2026-01', amount: 70_000_000,  status: 'remitted' },
-    { month: '2026-02', amount: 70_000_000,  status: 'accrued',  acct: 'BNP' },
+    { month: '2026-02', amount: 70_000_000,  status: 'accrued',  acct: 'Revolut' },
     { month: '2026-03', amount: 70_000_000,  status: 'accrued',  acct: 'Revolut' },
     { month: '2026-04', amount: 70_000_000,  status: 'accrued',  acct: 'Revolut' },
     { month: '2026-05', amount: 70_000_000,  status: 'scheduled' },
@@ -554,6 +554,8 @@ window.MERIDIAN_DATA = (() => {
     { id:'fD',date:'2026-05-25',cat:'must_have',label:'claude',amount:19.31,ccy:'EUR'},
     { id:'fE',date:'2026-05-25',cat:'must_have',label:'nha trang',amount:180.51,ccy:'EUR'},
     { id:'fF',date:'2026-05-25',cat:'an_uong',label:'ca phe',amount:9.26,ccy:'EUR'},
+    { id:'rent-oct-2026',date:'2026-10-01',cat:'must_have',label:'rent',amount:350,ccy:'EUR'},
+    { id:'rent-nov-2026',date:'2026-11-01',cat:'must_have',label:'rent',amount:350,ccy:'EUR'},
   ];
   const GOALS = [
     { id:'g1', name:'Wedding & honeymoon',   target:12000, saved:3200, ccy:'EUR', by:'2027-09' },
@@ -562,11 +564,11 @@ window.MERIDIAN_DATA = (() => {
   ];
   const MACRO = [
     { id:'fed',    name:'Fed Funds Rate',    group:'rates',  val:'3.50 — 3.75%', delta:'unchanged', trend:'flat', last:'2026-04-29', commentary:"Held for a third straight meeting with a divided 8-4 vote. New chair Warsh takes over mid-June — market expects no cut until at least Q3. USD weakening trend remains a tailwind for your EUR." },
-    { id:'ecb',    name:'ECB Deposit Rate',  group:'rates',  val:'2.00%',        delta:'-25 bps',   trend:'down', last:'2026-04-17', commentary:"ECB has cut steadily from 4% in 2023. At 2.00% now, near neutral. BNP balance earning very little. Plan to deploy it toward mom as FX is favorable." },
+    { id:'ecb',    name:'ECB Deposit Rate',  group:'rates',  val:'2.00%',        delta:'-25 bps',   trend:'down', last:'2026-04-17', commentary:"ECB has cut steadily from 4% in 2023. At 2.00% now, near neutral. Revolut EUR balance earning very little. Plan to deploy it toward mom as FX is favorable." },
     { id:'sbv',    name:'SBV Refi Rate',     group:'rates',  val:'4.50%',        delta:'unchanged', trend:'flat', last:'2026-05-12', commentary:"Vietnam keeping policy steady to support growth and defend the dong. VND holding — good for stability of your mom payment schedule." },
     { id:'eurusd', name:'EUR / USD',         group:'fx',     val:'1.1638',       delta:'+0.4%',     trend:'up',   last:'live', commentary:"EUR stronger vs USD. Your Revolut $6,951 converts to ≈€5,973 at today's rate. Good to keep primary savings in EUR rather than USD." },
     { id:'usdvnd', name:'USD / VND',         group:'fx',     val:'26,333',       delta:'+0.3%',     trend:'up',   last:'live', commentary:"VND slightly weaker vs USD. Your Revolut cash converts to more dong — favorable timing for remitting March + April set-asides." },
-    { id:'eurvnd', name:'EUR / VND',         group:'fx',     val:'30,661',       delta:'+0.8%',     trend:'up',   last:'live', commentary:"Sending €1,000 from BNP now yields 30.7M VND. Remitting the 210M ₫ set-aside at today's rate costs €6,849 — best value in months." },
+    { id:'eurvnd', name:'EUR / VND',         group:'fx',     val:'30,661',       delta:'+0.8%',     trend:'up',   last:'live', commentary:"Sending €1,000 from Revolut now yields 30.7M VND. Remitting the 210M ₫ set-aside at today's rate costs €6,849 — best value in months." },
     { id:'cpi_us', name:'US CPI (YoY)',      group:'cpi',    val:'2.9%',         delta:'-0.1 pp',   trend:'down', last:'2026-05-13', commentary:"Slowly converging toward 2% target. No imminent Fed cut expected." },
     { id:'cpi_ez', name:'EZ HICP (YoY)',     group:'cpi',    val:'2.2%',         delta:'+0.1 pp',   trend:'up',   last:'2026-05-16', commentary:"Near target. Services inflation stickier than goods. Real wages in France recovering — your purchasing power in EUR holds." },
     { id:'cpi_vn', name:'VN CPI (YoY)',      group:'cpi',    val:'3.7%',         delta:'+0.2 pp',   trend:'up',   last:'2026-05-06', commentary:"Food prices sticky in Vietnam. Factor ~4% local drift into planning for mom's living costs." },
@@ -816,7 +818,7 @@ function DebtArc({ loanSchedule }) {
   // Build account breakdown for set-aside label
   const acctGroups={};
   schedule.filter(s=>s.status==='accrued'&&s.acct).forEach(s=>{acctGroups[s.acct]=(acctGroups[s.acct]||0)+s.amount;});
-  const acctLabel=Object.entries(acctGroups).map(([a,v])=>`${a} ${(v/1_000_000).toFixed(0)}M`).join(' · ')||'in BNP + Revolut';
+  const acctLabel=Object.entries(acctGroups).map(([a,v])=>`${a} ${(v/1_000_000).toFixed(0)}M`).join(' · ')||'in Revolut';
   return (
     <div style={{display:'flex',gap:18,alignItems:'center'}}>
       <svg width="148" height="148" viewBox="-74 -74 148 148">
@@ -890,20 +892,14 @@ function AccountsList({ loanSchedule, runningCash }) {
   const schedule = loanSchedule || D.LOAN_SCHEDULE;
   const staticTotal = D.ACCOUNTS.reduce((s,a)=>s+D.toEUR(a.balance,a.ccy),0);
   const total = staticTotal; // Show actual account balances; runningCash shown in KPI tile above
-  // Build dynamic notes: which months are set aside in each account
-  function noteFor(accountId) {
-    const acct = accountId === 'bnp' ? 'BNP' : 'Revolut';
-    const months = schedule.filter(s=>s.status==='accrued'&&s.acct===acct);
-    if (!months.length) return null;
-    const total = months.reduce((s,x)=>s+x.amount,0);
-    const labels = months.map(m=>new Date(m.month+'-01').toLocaleDateString('en-GB',{month:'short'})).join(', ');
-    return `${labels} mom payment (${(total/1_000_000).toFixed(0)}M ₫) set aside here`;
-  }
+  const accrued = schedule.filter(s=>s.status==='accrued');
+  const accruedTotal = accrued.reduce((s,x)=>s+x.amount,0);
+  const accruedLabel = accrued.length
+    ? `${accrued.map(m=>new Date(m.month+'-01').toLocaleDateString('en-GB',{month:'short'})).join(', ')} mom payment (${(accruedTotal/1_000_000).toFixed(0)}M ₫) set aside here`
+    : null;
   return (
     <div style={{display:'flex',flexDirection:'column'}}>
-      {D.ACCOUNTS.map(a=>{
-        const dynamicNote = noteFor(a.id);
-        return (
+      {D.ACCOUNTS.map(a=>(
         <div key={a.id} style={{padding:'14px 16px',borderBottom:'1px solid var(--rule)'}}>
           <div className="row-between">
             <div><div style={{fontSize:13,fontWeight:500,color:'var(--ink)'}}>{a.name}</div><div className="ink4" style={{fontSize:11}}>{a.bank} · {a.ccy}</div></div>
@@ -912,9 +908,9 @@ function AccountsList({ loanSchedule, runningCash }) {
               {a.ccy!=='EUR'&&<div className="ink3" style={{fontSize:11}}>≈ {D.fmt(D.toEUR(a.balance,a.ccy),'EUR',{decimals:0})}</div>}
             </div>
           </div>
-          {(dynamicNote||a.note)&&<div className="serif ink3" style={{fontSize:12,fontStyle:'italic',marginTop:6,lineHeight:1.4}}>{dynamicNote||a.note}</div>}
         </div>
-      );})}
+      ))}
+      {accruedLabel&&<div style={{padding:'10px 16px',borderBottom:'1px solid var(--rule)'}}><div className="serif ink3" style={{fontSize:12,fontStyle:'italic',lineHeight:1.4}}>{accruedLabel}</div></div>}
       <div style={{padding:'14px 16px',background:'var(--panel-2)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <span className="eyebrow">Total (EUR equiv.)</span>
         <span className="serif" style={{fontSize:22}}>€{total.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
@@ -982,10 +978,10 @@ function OverviewScreen({ allEntries, monthlyInputs, loanSchedule }) {
   const salaryEUR = curInput?.income_eur||0;
 
   // === RUNNING CASH (baseline formula) ===
-  // Baseline: €20,620.23 on 2026-08-05 (actual balance, salary for that month not yet received)
+  // Baseline: an actual balance on D.BASELINE.date
   // + salary received for the baseline month onward, once logged (baseline predates it arriving)
   // − expenses logged with date strictly after baseline date
-  const baselineMonth = D.BASELINE.date.slice(0,7); // e.g. '2026-08'
+  const baselineMonth = D.BASELINE.date.slice(0,7); // e.g. '2026-09'
   const newIncome = inputs
     .filter(m => m.month >= baselineMonth && m.income_usd > 0)
     .reduce((s, m) => s + (m.income_eur || Math.round(m.income_usd / D.FX.EURUSD)), 0);
@@ -1150,7 +1146,7 @@ function MonthlyInputs({ selectedMonth, monthlyInputs, updateMonthlyInput, updat
   const [showMom, setShowMom] = React.useState(false);
   const [salaryVal, setSalaryVal] = React.useState('');
   const [momVal, setMomVal] = React.useState('');
-  const [momAcct, setMomAcct] = React.useState('BNP');
+  const [momAcct, setMomAcct] = React.useState('Revolut');
 
   function submitSalary() {
     const v = parseFloat(salaryVal);
@@ -1239,7 +1235,6 @@ function MonthlyInputs({ selectedMonth, monthlyInputs, updateMonthlyInput, updat
             <input className="field" type="number" step="1" min="0" placeholder="70" value={momVal} onChange={e=>setMomVal(e.target.value)} style={{flex:1}} autoFocus onKeyDown={e=>e.key==='Enter'&&submitMom()}/>
             <span style={{fontSize:12,color:'var(--ink-3)',fontFamily:'var(--mono)',whiteSpace:'nowrap'}}>M ₫</span>
             <select className="field" value={momAcct} onChange={e=>setMomAcct(e.target.value)} style={{width:110,height:32}}>
-              <option value="BNP">BNP Paribas</option>
               <option value="Revolut">Revolut</option>
               <option value="Other">Other</option>
             </select>
@@ -1910,7 +1905,7 @@ function AdvisorScreen({ tweaks, allEntries, monthlyInputs, loanSchedule }) {
         <SuggestedChips onPick={q=>send(q)}/>
         <div className="panel-h" style={{borderTop:'1px solid var(--rule)'}}><span className="title">ADVISOR HAS ACCESS TO</span></div>
         <div style={{padding:14}}>
-          {[{lbl:'Your full ledger',sub:'Nov 2025 — May 2026 entries'},{lbl:'Debt-to-mom schedule',sub:"1.5B VND principal · Nov '25 onwards"},{lbl:'2 accounts · 3 currencies',sub:'EUR · USD · VND balances live'},{lbl:'Net worth + sav. rate',sub:'updated nightly'},{lbl:'Macro signals',sub:'rates, FX, CPI, equity, commodities'},{lbl:'Your stated goals',sub:'wedding, emergency fund, house deposit'}].map((it,i)=>(
+          {[{lbl:'Your full ledger',sub:'Nov 2025 — May 2026 entries'},{lbl:'Debt-to-mom schedule',sub:"1.5B VND principal · Nov '25 onwards"},{lbl:'1 account · 3 currencies',sub:'EUR · USD · VND balances live'},{lbl:'Net worth + sav. rate',sub:'updated nightly'},{lbl:'Macro signals',sub:'rates, FX, CPI, equity, commodities'},{lbl:'Your stated goals',sub:'wedding, emergency fund, house deposit'}].map((it,i)=>(
             <div key={i} style={{padding:'8px 0',borderBottom:i<5?'1px solid var(--rule)':'none'}}>
               <div className="mono" style={{fontSize:11,color:'var(--ink)'}}>{it.lbl}</div>
               <div className="mono ink3" style={{fontSize:10}}>{it.sub}</div>
